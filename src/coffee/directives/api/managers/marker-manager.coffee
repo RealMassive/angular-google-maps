@@ -40,7 +40,8 @@ angular.module("google-maps.directives.api.managers")
 
       draw: =>
         deletes = []
-        @gMarkers.forEach (gMarker) =>
+        #@gMarkers.forEach (gMarker) =>
+        for gMarker in @gMarkers
           unless gMarker.isDrawn
             if gMarker.doAdd
               gMarker.setMap(@gMap)

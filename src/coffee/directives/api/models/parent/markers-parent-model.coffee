@@ -79,11 +79,10 @@ angular.module("google-maps.directives.api.models.parent")
                 else
                     @gMarkerManager = new MarkerManager(@mapCtrl.getMap())
 
-                _async.each scope.models, (model) =>
+                for model in scope.models
                     @newChildMarker(model, scope)
-                , () => #handle done callBack
-                    @gMarkerManager.draw()
-                    @gMarkerManager.fit() if scope.fit
+                @gMarkerManager.draw()
+                @gMarkerManager.fit() if scope.fit
 
 
             reBuildMarkers: (scope) =>

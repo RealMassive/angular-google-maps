@@ -104,7 +104,6 @@ angular.module("google-maps.directives.api.models.child")
             return
           @opts = @createMarkerOptions(scope.coords, scope.icon, scope.options)
 
-          delete @gMarker
           if @isLabelDefined(scope)
             @gMarker = new MarkerWithLabel(@setLabelOptions(@opts, scope))
           else

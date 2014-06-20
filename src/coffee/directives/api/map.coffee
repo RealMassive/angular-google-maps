@@ -19,9 +19,7 @@ angular.module("google-maps.directives.api")
             scope:
                 center: "=center" # required
                 zoom: "=zoom" # required
-                dragging: "=dragging" # optional
                 control: "=" # optional
-                windows: "=windows" # optional  TODO is this still needed looks like dead code
                 options: "=options" # optional
                 events: "=events" # optional
                 styles: "=styles" # optional
@@ -73,55 +71,17 @@ angular.module("google-maps.directives.api")
                 dragging = false
                 google.maps.event.addListener _m, "dragstart", ->
                     dragging = true
-                    _.defer ->
-                        scope.$apply (s) ->
-                            s.dragging = dragging if s.dragging?
 
                 google.maps.event.addListener _m, "dragend", ->
                     dragging = false
-                    _.defer ->
-                        scope.$apply (s) ->
-                            s.dragging = dragging if s.dragging?
-
-
-                google.maps.event.addListener _m, "drag", ->
-                    c = _m.center
-                    _.defer ->
-                        scope.$apply (s) ->
-                            if angular.isDefined(s.center.type)
-                                s.center.coordinates[1] = c.lat()
-                                s.center.coordinates[0] = c.lng()
-                            else
-                                s.center.latitude = c.lat()
-                                s.center.longitude = c.lng()
-
-
-                google.maps.event.addListener _m, "zoom_changed", ->
-                    if scope.zoom isnt _m.zoom
-                        _.defer ->
-                            scope.$apply (s) ->
-                                s.zoom = _m.zoom
-
-
-                settingCenterFromScope = false
-                google.maps.event.addListener _m, "center_changed", ->
-                    c = _m.center
-                    return  if settingCenterFromScope #if the scope notified this change then there is no reason to update scope otherwise infinite loop
-                    _.defer ->
-                        scope.$apply (s) ->
-                            unless _m.dragging
-                                if angular.isDefined(s.center.type)
-                                    s.center.coordinates[1] = c.lat() if s.center.coordinates[1] isnt c.lat()
-                                    s.center.coordinates[0] = c.lng() if s.center.coordinates[0] isnt c.lng()
-                                else
-                                    s.center.latitude = c.lat()  if s.center.latitude isnt c.lat()
-                                    s.center.longitude = c.lng()  if s.center.longitude isnt c.lng()
 
 
                 google.maps.event.addListener _m, "idle", ->
                     b = _m.getBounds()
                     ne = b.getNorthEast()
                     sw = b.getSouthWest()
+                    c = _m.center
+                    z = _m.zoom
                     _.defer ->
                         scope.$apply (s) ->
                             if s.bounds isnt null and s.bounds isnt `undefined` and s.bounds isnt undefined
@@ -132,6 +92,17 @@ angular.module("google-maps.directives.api")
                                 s.bounds.southwest =
                                     latitude: sw.lat()
                                     longitude: sw.lng()
+
+                            # update map view center
+                            if angular.isDefined(s.center.type)
+                                s.center.coordinates[1] = c.lat() if s.center.coordinates[1] isnt c.lat()
+                                s.center.coordinates[0] = c.lng() if s.center.coordinates[0] isnt c.lng()
+                            else
+                                s.center.latitude = c.lat()  if s.center.latitude isnt c.lat()
+                                s.center.longitude = c.lng()  if s.center.longitude isnt c.lng()
+
+                            # update map view zoom
+                            s.zoom = z
 
                 if angular.isDefined(scope.events) and scope.events isnt null and angular.isObject(scope.events)
                     getEventHandler = (eventName) ->
@@ -168,7 +139,6 @@ angular.module("google-maps.directives.api")
                 scope.$watch "center", ((newValue, oldValue) =>
                     coords = @getCoords newValue
                     return  if coords.lat() is _m.center.lat() and coords.lng() is _m.center.lng()
-                    settingCenterFromScope = true
                     unless dragging
                         if !@validateCoords(newValue)
                             $log.error("Invalid center for newValue: #{JSON.stringify newValue}")
@@ -176,8 +146,6 @@ angular.module("google-maps.directives.api")
                             _m.panTo coords
                         else
                             _m.setCenter coords
-
-                    settingCenterFromScope = false
                 ), true
                 scope.$watch "zoom", (newValue, oldValue) ->
                     return  if newValue is _m.zoom
