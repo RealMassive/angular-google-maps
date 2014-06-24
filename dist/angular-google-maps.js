@@ -1,4 +1,4 @@
-/*! angular-google-maps 1.1.3 2014-06-17
+/*! angular-google-maps 1.1.3 2014-06-24
  *  AngularJS directives for Google Maps
  *  git: https://github.com/nlaplante/angular-google-maps.git
  */
@@ -1089,18 +1089,20 @@ Nicholas McCready - https://twitter.com/nmccready
         };
 
         MarkerManager.prototype.draw = function() {
-          var deletes,
+          var deletes, gMarker, _i, _len, _ref,
             _this = this;
           deletes = [];
-          this.gMarkers.forEach(function(gMarker) {
+          _ref = this.gMarkers;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            gMarker = _ref[_i];
             if (!gMarker.isDrawn) {
               if (gMarker.doAdd) {
-                return gMarker.setMap(_this.gMap);
+                gMarker.setMap(this.gMap);
               } else {
-                return deletes.push(gMarker);
+                deletes.push(gMarker);
               }
             }
-          });
+          }
           return deletes.forEach(function(gMarker) {
             return _this.remove(gMarker, true);
           });
@@ -1666,7 +1668,6 @@ Nicholas McCready - https://twitter.com/nmccready
             return;
           }
           this.opts = this.createMarkerOptions(scope.coords, scope.icon, scope.options);
-          delete this.gMarker;
           if (this.isLabelDefined(scope)) {
             this.gMarker = new MarkerWithLabel(this.setLabelOptions(this.opts, scope));
           } else {
@@ -2533,7 +2534,8 @@ Nicholas McCready - https://twitter.com/nmccready
         };
 
         MarkersParentModel.prototype.createMarkersFromScratch = function(scope) {
-          var _this = this;
+          var model, _i, _len, _ref,
+            _this = this;
           if (scope.doCluster) {
             if (scope.clusterEvents) {
               this.clusterInternalOptions = _.once(function() {
@@ -2573,14 +2575,15 @@ Nicholas McCready - https://twitter.com/nmccready
           } else {
             this.gMarkerManager = new MarkerManager(this.mapCtrl.getMap());
           }
-          return _async.each(scope.models, function(model) {
-            return _this.newChildMarker(model, scope);
-          }, function() {
-            _this.gMarkerManager.draw();
-            if (scope.fit) {
-              return _this.gMarkerManager.fit();
-            }
-          });
+          _ref = scope.models;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            model = _ref[_i];
+            this.newChildMarker(model, scope);
+          }
+          this.gMarkerManager.draw();
+          if (scope.fit) {
+            return this.gMarkerManager.fit();
+          }
         };
 
         MarkersParentModel.prototype.reBuildMarkers = function(scope) {
@@ -3469,9 +3472,7 @@ Nicholas McCready - https://twitter.com/nmccready
         Map.prototype.scope = {
           center: "=center",
           zoom: "=zoom",
-          dragging: "=dragging",
           control: "=",
-          windows: "=windows",
           options: "=options",
           events: "=events",
           styles: "=styles",
@@ -3496,7 +3497,7 @@ Nicholas McCready - https://twitter.com/nmccready
 
 
         Map.prototype.link = function(scope, element, attrs) {
-          var dragging, el, eventName, getEventHandler, opts, settingCenterFromScope, type, _m,
+          var dragging, el, eventName, getEventHandler, opts, type, _m,
             _this = this;
           if (!this.validateCoords(scope.center)) {
             $log.error("angular-google-maps: could not find a valid center property");
@@ -3533,83 +3534,18 @@ Nicholas McCready - https://twitter.com/nmccready
           }));
           dragging = false;
           google.maps.event.addListener(_m, "dragstart", function() {
-            dragging = true;
-            return _.defer(function() {
-              return scope.$apply(function(s) {
-                if (s.dragging != null) {
-                  return s.dragging = dragging;
-                }
-              });
-            });
+            return dragging = true;
           });
           google.maps.event.addListener(_m, "dragend", function() {
-            dragging = false;
-            return _.defer(function() {
-              return scope.$apply(function(s) {
-                if (s.dragging != null) {
-                  return s.dragging = dragging;
-                }
-              });
-            });
-          });
-          google.maps.event.addListener(_m, "drag", function() {
-            var c;
-            c = _m.center;
-            return _.defer(function() {
-              return scope.$apply(function(s) {
-                if (angular.isDefined(s.center.type)) {
-                  s.center.coordinates[1] = c.lat();
-                  return s.center.coordinates[0] = c.lng();
-                } else {
-                  s.center.latitude = c.lat();
-                  return s.center.longitude = c.lng();
-                }
-              });
-            });
-          });
-          google.maps.event.addListener(_m, "zoom_changed", function() {
-            if (scope.zoom !== _m.zoom) {
-              return _.defer(function() {
-                return scope.$apply(function(s) {
-                  return s.zoom = _m.zoom;
-                });
-              });
-            }
-          });
-          settingCenterFromScope = false;
-          google.maps.event.addListener(_m, "center_changed", function() {
-            var c;
-            c = _m.center;
-            if (settingCenterFromScope) {
-              return;
-            }
-            return _.defer(function() {
-              return scope.$apply(function(s) {
-                if (!_m.dragging) {
-                  if (angular.isDefined(s.center.type)) {
-                    if (s.center.coordinates[1] !== c.lat()) {
-                      s.center.coordinates[1] = c.lat();
-                    }
-                    if (s.center.coordinates[0] !== c.lng()) {
-                      return s.center.coordinates[0] = c.lng();
-                    }
-                  } else {
-                    if (s.center.latitude !== c.lat()) {
-                      s.center.latitude = c.lat();
-                    }
-                    if (s.center.longitude !== c.lng()) {
-                      return s.center.longitude = c.lng();
-                    }
-                  }
-                }
-              });
-            });
+            return dragging = false;
           });
           google.maps.event.addListener(_m, "idle", function() {
-            var b, ne, sw;
+            var b, c, ne, sw, z;
             b = _m.getBounds();
             ne = b.getNorthEast();
             sw = b.getSouthWest();
+            c = _m.center;
+            z = _m.zoom;
             return _.defer(function() {
               return scope.$apply(function(s) {
                 if (s.bounds !== null && s.bounds !== undefined && s.bounds !== void 0) {
@@ -3617,11 +3553,27 @@ Nicholas McCready - https://twitter.com/nmccready
                     latitude: ne.lat(),
                     longitude: ne.lng()
                   };
-                  return s.bounds.southwest = {
+                  s.bounds.southwest = {
                     latitude: sw.lat(),
                     longitude: sw.lng()
                   };
                 }
+                if (angular.isDefined(s.center.type)) {
+                  if (s.center.coordinates[1] !== c.lat()) {
+                    s.center.coordinates[1] = c.lat();
+                  }
+                  if (s.center.coordinates[0] !== c.lng()) {
+                    s.center.coordinates[0] = c.lng();
+                  }
+                } else {
+                  if (s.center.latitude !== c.lat()) {
+                    s.center.latitude = c.lat();
+                  }
+                  if (s.center.longitude !== c.lng()) {
+                    s.center.longitude = c.lng();
+                  }
+                }
+                return s.zoom = z;
               });
             });
           });
@@ -3668,18 +3620,16 @@ Nicholas McCready - https://twitter.com/nmccready
             if (coords.lat() === _m.center.lat() && coords.lng() === _m.center.lng()) {
               return;
             }
-            settingCenterFromScope = true;
             if (!dragging) {
               if (!_this.validateCoords(newValue)) {
                 $log.error("Invalid center for newValue: " + (JSON.stringify(newValue)));
               }
               if (_this.isTrue(attrs.pan) && scope.zoom === _m.zoom) {
-                _m.panTo(coords);
+                return _m.panTo(coords);
               } else {
-                _m.setCenter(coords);
+                return _m.setCenter(coords);
               }
             }
-            return settingCenterFromScope = false;
           }), true);
           scope.$watch("zoom", function(newValue, oldValue) {
             if (newValue === _m.zoom) {
