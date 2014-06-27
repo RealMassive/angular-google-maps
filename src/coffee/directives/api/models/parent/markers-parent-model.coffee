@@ -1,13 +1,11 @@
 angular.module("google-maps.directives.api.models.parent")
-.factory "MarkersParentModel", ["IMarkerParentModel", "ModelsWatcher", "PropMap", "MarkerChildModel", "ClustererMarkerManager", "MarkerManager",
-    (IMarkerParentModel, ModelsWatcher, PropMap, MarkerChildModel, ClustererMarkerManager, MarkerManager) ->
+.factory "MarkersParentModel", ["IMarkerParentModel", "ModelsWatcher", "PropMap", "ClustererMarkerManager", "MarkerManager",
+    (IMarkerParentModel, ModelsWatcher, PropMap, ClustererMarkerManager, MarkerManager) ->
         class MarkersParentModel extends IMarkerParentModel
             @include ModelsWatcher
             constructor: (scope, element, attrs, mapCtrl, $timeout) ->
                 super(scope, element, attrs, mapCtrl, $timeout)
                 self = @
-                @scope.markerModels = new PropMap()
-
                 @$timeout = $timeout
                 @$log.info @
                 #assume do rebuild all is false and were lookging for a modelKey prop of id
@@ -16,10 +14,11 @@ angular.module("google-maps.directives.api.models.parent")
                 @scope.$watch 'doRebuildAll', (newValue, oldValue) =>
                     if (newValue != oldValue)
                         @doRebuildAll = newValue
+                @viewInProgress = false
 
             onTimeOut: (scope)=>
                 #watch all the below properties with end up being processed by onWatch below
-                @watch('models', scope)
+                @watch('models', scope, false)
                 @watch('doCluster', scope)
                 @watch('clusterOptions', scope)
                 @watch('clusterEvents', scope)
@@ -27,6 +26,14 @@ angular.module("google-maps.directives.api.models.parent")
                 @watch('idKey', scope)
                 @gMarkerManager = undefined
                 @createMarkersFromScratch(scope)
+                _mySelf = @
+                @map = @mapCtrl.getMap()
+                #google.maps.event.addListener @map, "drag", ->
+                #    _mySelf.updateView _mySelf, scope
+                #google.maps.event.addListener @map, "zoom_changed", ->
+                #    _mySelf.updateView _mySelf, scope
+                google.maps.event.addListener @map, "idle", ->
+                    _mySelf.updateView _mySelf, scope
 
             onWatch: (propNameToWatch, scope, newValue, oldValue) =>
                 if propNameToWatch == "idKey" and newValue != oldValue
@@ -67,22 +74,60 @@ angular.module("google-maps.directives.api.models.parent")
                             @gMarkerManager = new ClustererMarkerManager @mapCtrl.getMap(),
                                     undefined,
                                     scope.clusterOptions,
-                                    @clusterInternalOptions
+                                    @clusterInternalOptions,
+                                    scope,
+                                    @DEFAULTS,
+                                    @doClick,
+                                    @idKey
                         else
                             if @gMarkerManager.opt_options != scope.clusterOptions
                                 @gMarkerManager = new ClustererMarkerManager @mapCtrl.getMap(),
                                       undefined,
                                       scope.clusterOptions,
-                                      @clusterInternalOptions
+                                      @clusterInternalOptions,
+                                      scope,
+                                      @DEFAULTS,
+                                      @doClick,
+                                      @idKey
                     else
                         @gMarkerManager = new ClustererMarkerManager(@mapCtrl.getMap())
                 else
-                    @gMarkerManager = new MarkerManager(@mapCtrl.getMap())
+                    @gMarkerManager = new MarkerManager(@mapCtrl.getMap(), scope, @DEFAULTS, @doClick, @idKey)
 
-                for model in scope.models
-                    @newChildMarker(model, scope)
-                @gMarkerManager.draw()
-                @gMarkerManager.fit() if scope.fit
+                console.log 'adding new markers'
+                @gMarkerManager.addMany scope.models
+                console.log 'markers added'
+                @updateView this, scope
+                @gMarkerManager.fit() #if scope.fit
+
+            mapBoundingBox: (map) =>
+                if map
+                    b = map.getBounds()
+                    if b
+                        ne = b.getNorthEast()
+                        sw = b.getSouthWest()
+                        boundary = { ne: {
+                                lat: ne.lat(),
+                                lng: ne.lng()
+                            }, sw: {
+                                lat: sw.lat(),
+                                lng: sw.lng()
+                            } }
+                boundary
+
+            updateView: (_mySelf, scope) =>
+                #return
+                map = _mySelf.map
+                boundary = _mySelf.mapBoundingBox map
+                if not boundary
+                    return
+                if _mySelf.viewInProgress
+                    return
+                _mySelf.viewInProgress = true
+                zoom = map.zoom
+                console.log 'update map view'
+                _mySelf.gMarkerManager.draw boundary, zoom
+                _mySelf.viewInProgress = false
 
 
             reBuildMarkers: (scope) =>
@@ -120,6 +165,7 @@ angular.module("google-maps.directives.api.models.parent")
                 @$log.info('child', child, 'markers', @scope.markerModels)
                 child = new MarkerChildModel(model, scope, @mapCtrl, @$timeout, @DEFAULTS,
                     @doClick, @gMarkerManager, @idKey)
+                child.inView = false
                 @scope.markerModels.put(model[@idKey], child) #major change this makes model.id a requirement
                 child
 
@@ -128,11 +174,18 @@ angular.module("google-maps.directives.api.models.parent")
                 #slap index to the external model so that when they pass external back
                 #for destroy we have a lookup?
                 #this will require another attribute for destroySingle(marker)
-                _.each @scope.markerModels.values(), (model)->
-                    model.destroy() if model?
+                @gMarkerManager.clear()
+                showMarker = @gMarkerManager.showMarker if @gMarkerManager?
+                _.each @markersInView, (marker) ->
+                    data = marker.data
+                    if (showMarker && data && data.gMarker)?
+                        showMarker data.gMarker, false
+                #_.each @scope.markerModels.values(), (model)->
+                #    if (showMarker && model.gMarker && model.inView)?
+                #        showMarker model.gMarker, false
+                #    model.destroy() if (model.destroy)?
                 delete @scope.markerModels
-                @scope.markerModels = new PropMap()
-                @gMarkerManager.clear() if @gMarkerManager?
+                @scope.markerModels = new GeoTree()
 
             maybeExecMappedEvent:(cluster, fnName) ->
               if _.isFunction @scope.clusterEvents?[fnName]
@@ -141,8 +194,8 @@ angular.module("google-maps.directives.api.models.parent")
 
             mapClusterToMarkerModels:(cluster) ->
                 gMarkers = cluster.getMarkers()
-                mapped = gMarkers.map (g) =>
-                    @scope.markerModels[g.key].model
+                mapped = gMarkers.map (gMarker) =>
+                    gMarker.model
                 cluster: cluster
                 mapped: mapped
 

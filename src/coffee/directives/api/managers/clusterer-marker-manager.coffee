@@ -1,7 +1,7 @@
 angular.module("google-maps.directives.api.managers")
-.factory "ClustererMarkerManager", ["Logger", "FitHelper", ($log, FitHelper) ->
+.factory "ClustererMarkerManager", ["Logger", "FitHelper", "MarkerChildModel", ($log, FitHelper, MarkerChildModel) ->
     class ClustererMarkerManager extends FitHelper
-      constructor: (gMap, opt_markers, opt_options, @opt_events) ->
+      constructor: (gMap, opt_markers, opt_options, @opt_events, @parentScope, @DEFAULTS, @doClick, @idKey) ->
         super()
         self = @
         @opt_options = opt_options
@@ -17,19 +17,66 @@ angular.module("google-maps.directives.api.managers")
         @clusterer.setIgnoreHidden(true)
         @noDrawOnSingleAddRemoves = true
         $log.info(@)
-      add: (gMarker)=>
-        @clusterer.addMarker(gMarker, @noDrawOnSingleAddRemoves)
-      addMany: (gMarkers)=>
-        @clusterer.addMarkers(gMarkers)
-      remove: (gMarker)=>
-        @clusterer.removeMarker(gMarker, @noDrawOnSingleAddRemoves)
-      removeMany: (gMarkers)=>
-        @clusterer.addMarkers(gMarkers)
-      draw: ()=>
+        @gMarkers = new GeoTree()
+        @currentViewBox
+        @dirty = true
+
+      add: (model)=>
+        @gMarkers.insert model.geo.latitude, model.geo.longitude, {data: {model: model}}
+        @dirty = true
+        #@clusterer.addModel(gMarker, @noDrawOnSingleAddRemoves)
+      addMany: (models)=>
+        @add(model) for model in models
+        #@clusterer.addModels(gMarkers)
+      remove: (model)=>
+        #@clusterer.removeMarker(gMarker, @noDrawOnSingleAddRemoves)
+      removeMany: (models)=>
+        @remove(model) for model in models
+        #@clusterer.removeModels(gMarkers)
+
+      draw: (viewBox, zoom) =>
+        return unless viewBox
+
+        if not @currentViewBox
+          @currentViewBox = viewBox
+          @dirty = true
+
+        if not @zoom
+          @zoom = zoom
+
+        added = 0
+
+        updateRegions = @getUpdateRegions @currentViewBox, viewBox, @dirty, @zoom - zoom
+        # show markers which are new in view
+        start = new Date()
+        for region in updateRegions.add
+          markers = @gMarkers.find region.ne, region.sw
+          added += markers.length
+          for marker in markers
+            if not marker.data.gMarker
+              data = new MarkerChildModel(marker.data.model, @parentScope, @map, @DEFAULTS, @doClick, @idKey)
+              data.gMarker.setVisible true
+              marker.data = data
+            if not marker.visible
+              @clusterer.addMarker marker.data.gMarker, true
+              marker.visible = true
+        end = new Date()
+        console.log 'update time: ' + (end - start) / 1000 + 's'
+
+        @currentViewBox = viewBox
+        @dirty = false
+        @zoom = zoom
+        console.log 'added: ' + added + ' markers'
+
         @clusterer.repaint()
+
       clear: ()=>
         @clusterer.clearMarkers()
         @clusterer.repaint()
+        @gMarkers.forEach (marker) ->
+            marker.data.gMarker.setMap null if marker.data.gMarker
+        delete @gMarkers
+        @gMarkers = new GeoTree()
 
       attachEvents:(options, optionsName) ->
         if angular.isDefined(options) and options? and angular.isObject(options)

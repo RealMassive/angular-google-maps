@@ -4,7 +4,7 @@ angular.module("google-maps.directives.api.models.child")
       class MarkerChildModel extends ModelKey
         @include GmapUtil
         @include MarkerEventHelper
-        constructor: (@model, @parentScope, @gMap, @$timeout, @defaults, @doClick, @gMarkerManager, @idKey)->
+        constructor: (@model, @parentScope, @gMap, @defaults, @doClick, @idKey)->
           self = @
           @id = @model[@idKey] if @model[@idKey]
           @iconKey = @parentScope.icon
@@ -65,7 +65,6 @@ angular.module("google-maps.directives.api.models.child")
             @scope[scopePropName] = newValue
             unless isInit
               gSetter(@scope) if gSetter?
-              @gMarkerManager.draw()
 
         destroy: () =>
           @scope.$destroy()
@@ -79,17 +78,13 @@ angular.module("google-maps.directives.api.models.child")
               return
             @gMarker.setPosition(@getCoords(scope.coords))
             @gMarker.setVisible(@validateCoords(scope.coords))
-            @gMarkerManager.remove(@gMarker)
-            @gMarkerManager.add(@gMarker)
           else
             @gMarkerManager.remove(@gMarker)
 
         setIcon: (scope) =>
           if(scope.$id != @scope.$id or @gMarker == undefined)
             return
-          @gMarkerManager.remove(@gMarker)
           @gMarker.setIcon(scope.icon)
-          @gMarkerManager.add(@gMarker)
           @gMarker.setPosition(@getCoords(scope.coords))
           @gMarker.setVisible(@validateCoords(scope.coords))
 
@@ -98,7 +93,6 @@ angular.module("google-maps.directives.api.models.child")
             return
 
           if @gMarker?
-            @gMarkerManager.remove(@gMarker)
             delete @gMarker
           unless scope.coords ? scope.icon? scope.options?
             return
@@ -109,11 +103,13 @@ angular.module("google-maps.directives.api.models.child")
           else
             @gMarker = new google.maps.Marker(@opts)
 
+          # save reference to model
+          @gMarker.model = @model
+
           @setEvents @gMarker, @parentScope, @model
 
           @gMarker.key = @id if @id
 
-          @gMarkerManager.add(@gMarker)
           google.maps.event.addListener @gMarker, 'click', =>
             if @doClick and @scope.click?
               @scope.click()

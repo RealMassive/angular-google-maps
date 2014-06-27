@@ -181,3 +181,5 @@ module.exports = (grunt) ->
     grunt.registerTask "twomaps", ["clean:example", "connect:server", "open:twomaps", "watch:all"]
     grunt.registerTask "geojson", ["clean:example", "connect:server", "open:geojson", "watch:all"]
     grunt.registerTask "hugedata", ["clean:example", "connect:server", "open:hugedata", "watch:all"]
+
+    grunt.registerTask "build", ["clean:dist", "jshint", "mkdir", "coffee", "concat:dist", "copy:dist"]

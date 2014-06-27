@@ -35,7 +35,7 @@ angular.module("google-maps.directives.api.utils")
             position: if defaults.position? then defaults.position
             else getCoords(coords),
             icon: if defaults.icon? then defaults.icon else icon,
-            visible: if defaults.visible? then defaults.visible else validateCoords(coords)
+            visible: if defaults.visible? then defaults.visible else false
         opts.map = map if map?
         opts
 

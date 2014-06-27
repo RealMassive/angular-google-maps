@@ -39,13 +39,15 @@ angular.module("google-maps.directives.api.models.parent")
                 return false
             ret
 
-        watch: (propNameToWatch, scope) =>
-
+        # TODO: add modelEquality attribute to markers directive
+        watch: (propNameToWatch, scope, equality) =>
+            if typeof equality is 'undefined'
+                equality = true
             watchFunc = (newValue, oldValue) =>
                 if (newValue != oldValue)
                     @onWatch(propNameToWatch, scope, newValue, oldValue)
 
-            scope.$watch propNameToWatch, watchFunc, true
+            scope.$watch propNameToWatch, watchFunc, equality
 
         onWatch: (propNameToWatch, scope, newValue, oldValue) =>
             throw new String("OnWatch Not Implemented!!")
