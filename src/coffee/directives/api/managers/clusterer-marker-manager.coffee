@@ -6,11 +6,11 @@ angular.module("google-maps.directives.api.managers")
         self = @
         @opt_options = opt_options
         if opt_options? and opt_markers == undefined
-          @clusterer = new MarkerClusterer(gMap, undefined, opt_options)
+          @clusterer = new MarkerClusterer(gMap, undefined, opt_options, MarkerChildModel, @parentScope, @DEFAULTS, @doClick, @idKey)
         else if opt_options? and opt_markers?
-          @clusterer = new MarkerClusterer(gMap, opt_markers, opt_options)
+          @clusterer = new MarkerClusterer(gMap, opt_markers, opt_options, MarkerChildModel, @parentScope, @DEFAULTS, @doClick, @idKey)
         else
-          @clusterer = new MarkerClusterer(gMap)
+          @clusterer = new MarkerClusterer(gMap, null, null, MarkerChildModel, @parentScope, @DEFAULTS, @doClick, @idKey)
 
         @attachEvents @opt_events, "opt_events"
 
@@ -54,14 +54,10 @@ angular.module("google-maps.directives.api.managers")
         markers = @gMarkers.find viewBox.ne, viewBox.sw
         added += markers.length
         for marker in markers
-          if not marker.data.gMarker
-            data = new MarkerChildModel(marker.data.model, @parentScope, @map, @DEFAULTS, @doClick, @idKey)
-            data.gMarker.setVisible true
-            marker.data = data
           if not marker.visible
             marker.visible = {}
           if not marker.visible[zoom]
-            @clusterer.addMarker marker.data.gMarker, true
+            @clusterer.addMarker marker, true
             marker.visible[zoom] = true
         end = new Date()
         console.log 'update time: ' + (end - start) / 1000 + 's'

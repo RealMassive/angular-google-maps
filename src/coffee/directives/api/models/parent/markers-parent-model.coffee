@@ -98,7 +98,7 @@ angular.module("google-maps.directives.api.models.parent")
                 @gMarkerManager.addMany scope.models
                 console.log 'markers added'
                 @updateView this, scope
-                @gMarkerManager.fit() #if scope.fit
+                @gMarkerManager.fit() if scope.fit
 
             mapBoundingBox: (map) =>
                 if map
@@ -195,7 +195,7 @@ angular.module("google-maps.directives.api.models.parent")
             mapClusterToMarkerModels:(cluster) ->
                 gMarkers = cluster.getMarkers()
                 mapped = gMarkers.map (gMarker) =>
-                    gMarker.model
+                    gMarker.data.model
                 cluster: cluster
                 mapped: mapped
 
