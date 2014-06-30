@@ -1,4 +1,4 @@
-/*! angular-google-maps 1.1.3 2014-06-27
+/*! angular-google-maps 1.1.3 2014-06-30
  *  AngularJS directives for Google Maps
  *  git: https://github.com/nlaplante/angular-google-maps.git
  */
@@ -1210,7 +1210,7 @@ Nicholas McCready - https://twitter.com/nmccready
         };
 
         ClustererMarkerManager.prototype.draw = function(viewBox, zoom) {
-          var added, data, end, marker, markers, region, start, updateRegions, _i, _j, _len, _len1, _ref;
+          var added, data, end, marker, markers, start, _i, _len;
           if (!viewBox) {
             return;
           }
@@ -1222,24 +1222,22 @@ Nicholas McCready - https://twitter.com/nmccready
             this.zoom = zoom;
           }
           added = 0;
-          updateRegions = this.getUpdateRegions(this.currentViewBox, viewBox, this.dirty, this.zoom - zoom);
           start = new Date();
-          _ref = updateRegions.add;
-          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-            region = _ref[_i];
-            markers = this.gMarkers.find(region.ne, region.sw);
-            added += markers.length;
-            for (_j = 0, _len1 = markers.length; _j < _len1; _j++) {
-              marker = markers[_j];
-              if (!marker.data.gMarker) {
-                data = new MarkerChildModel(marker.data.model, this.parentScope, this.map, this.DEFAULTS, this.doClick, this.idKey);
-                data.gMarker.setVisible(true);
-                marker.data = data;
-              }
-              if (!marker.visible) {
-                this.clusterer.addMarker(marker.data.gMarker, true);
-                marker.visible = true;
-              }
+          markers = this.gMarkers.find(viewBox.ne, viewBox.sw);
+          added += markers.length;
+          for (_i = 0, _len = markers.length; _i < _len; _i++) {
+            marker = markers[_i];
+            if (!marker.data.gMarker) {
+              data = new MarkerChildModel(marker.data.model, this.parentScope, this.map, this.DEFAULTS, this.doClick, this.idKey);
+              data.gMarker.setVisible(true);
+              marker.data = data;
+            }
+            if (!marker.visible) {
+              marker.visible = {};
+            }
+            if (!marker.visible[zoom]) {
+              this.clusterer.addMarker(marker.data.gMarker, true);
+              marker.visible[zoom] = true;
             }
           }
           end = new Date();
@@ -1248,7 +1246,11 @@ Nicholas McCready - https://twitter.com/nmccready
           this.dirty = false;
           this.zoom = zoom;
           console.log('added: ' + added + ' markers');
-          return this.clusterer.repaint();
+          console.log('repainting clusters');
+          start = new Date();
+          this.clusterer.repaint();
+          end = new Date();
+          return console.log('clusters repainted: ' + (end - start) / 1000 + 's');
         };
 
         ClustererMarkerManager.prototype.clear = function() {
@@ -6733,6 +6735,14 @@ ClusterIcon.prototype.getPosFromLatLng_ = function (latlng) {
     return pos;
 };
 
+function ClusterIDGenerator() {
+    if(ClusterIDGenerator.instance) {
+        return ClusterIDGenerator.instance;
+    }
+    ClusterIDGenerator.instance = this;
+    this.idCounter = 1;
+    this.generate = function() { return this.idCounter++; };
+};
 
 /**
  * Creates a single cluster that manages a group of proximate markers.
@@ -6751,6 +6761,7 @@ function Cluster(mc) {
     this.center_ = null;
     this.bounds_ = null;
     this.clusterIcon_ = new ClusterIcon(this, mc.getStyles());
+    this.id = new ClusterIDGenerator().generate();
 }
 
 
@@ -6853,9 +6864,9 @@ Cluster.prototype.addMarker = function (marker) {
     var mCount;
     var mz;
 
-    if (this.isMarkerAlreadyAdded_(marker)) {
-        return false;
-    }
+//    if (this.isMarkerAlreadyAdded_(marker)) {
+//        return false;
+//    }
 
     if (!this.center_) {
         this.center_ = marker.getPosition();
@@ -7066,7 +7077,7 @@ function MarkerClusterer(map, opt_markers, opt_options) {
     this.markers_ = [];
     this.clusters_ = [];
     this.zoomLevelsClusters = [];
-    this.maxZoomLevel = 15;
+    this.maxZoomLevel = 22;
     this.clearZoomLevelClusters_();
     this.currentZoomLevel = this.maxZoomLevel;
     this.clustersInView = [];
@@ -7137,7 +7148,7 @@ MarkerClusterer.prototype.onAdd = function () {
     this.activeMap_ = this.getMap();
     this.ready_ = true;
 
-    this.repaint();
+//    this.repaint();
 
     // Add the map event listeners
     this.listeners_ = [
@@ -7616,15 +7627,16 @@ MarkerClusterer.prototype.addMarkers = function (markers, opt_nodraw) {
  */
 MarkerClusterer.prototype.pushMarkerTo_ = function (marker) {
     // If the marker is draggable add a listener so we can update the clusters on the dragend:
-    if (marker.getDraggable()) {
-        var cMarkerClusterer = this;
-        google.maps.event.addListener(marker, "dragend", function () {
-            if (cMarkerClusterer.ready_) {
-                this.isAdded = false;
-                cMarkerClusterer.repaint();
-            }
-        });
-    }
+    // TODO: make markers draggable
+//    if (marker.getDraggable()) {
+//        var cMarkerClusterer = this;
+//        google.maps.event.addListener(marker, "dragend", function () {
+//            if (cMarkerClusterer.ready_) {
+//                this.isAdded = false;
+//                cMarkerClusterer.repaint();
+//            }
+//        });
+//    }
     marker.isAdded = false;
     this.markers_.push(marker);
     this.dirty = true;
@@ -7713,7 +7725,23 @@ MarkerClusterer.prototype.removeMarker_ = function (marker) {
  *  managed by the clusterer.
  */
 MarkerClusterer.prototype.clearMarkers = function () {
-    this.resetViewport_(true);
+    var i, j, marker, markers, tree;
+    // Remove all the clusters
+    for (i = 0; i < this.zoomLevelsClusters.length; i++) {
+        tree = this.zoomLevelsClusters[i];
+        tree.forEach(function(cluster) {
+            markers = cluster.getMarkers();
+            if(i === 0) {
+                for(j = 0; j < markers.length; j++) {
+                    marker = markers[j];
+                    marker.isAdded = false;
+                    marker.setMap(null);
+                }
+            }
+            cluster.remove();
+        });
+    }
+    this.clearZoomLevelClusters_();
     this.markers_ = [];
 };
 
@@ -7723,20 +7751,8 @@ MarkerClusterer.prototype.clearMarkers = function () {
  *  Call this after changing any properties.
  */
 MarkerClusterer.prototype.repaint = function () {
-    console.log('repaint!!!!!');
-    var oldClusters = this.clusters_.slice();
-    this.clusters_ = [];
     this.resetViewport_(false);
     this.redraw_();
-
-    // Remove the old clusters.
-    // Do it in a timeout to prevent blinking effect.
-    setTimeout(function () {
-        var i;
-        for (i = 0; i < oldClusters.length; i++) {
-            oldClusters[i].remove();
-        }
-    }, 0);
 };
 
 
@@ -7793,22 +7809,21 @@ MarkerClusterer.prototype.redraw_ = function () {
  *  from the map.
  */
 MarkerClusterer.prototype.resetViewport_ = function (opt_hide) {
-    console.log('repaint!!!!');
-    var i, marker;
-    // Remove all the clusters
-    for (i = 0; i < this.clusters_.length; i++) {
-        this.clusters_[i].remove();
-    }
-    this.clusters_ = [];
+    console.log('resetViewport_!!!!');
+
+//    for (i = 0; i < this.clusters_.length; i++) {
+//        this.clusters_[i].remove();
+//    }
+//    this.clusters_ = [];
 
     // Reset the markers to not be added and to be removed from the map.
-    for (i = 0; i < this.markers_.length; i++) {
-        marker = this.markers_[i];
-        marker.isAdded = false;
-        if (opt_hide) {
-            marker.setMap(null);
-        }
-    }
+//    for (i = 0; i < this.markers_.length; i++) {
+//        marker = this.markers_[i];
+//        marker.isAdded = false;
+//        if (opt_hide) {
+//            marker.setMap(null);
+//        }
+//    }
 };
 
 
@@ -7850,56 +7865,129 @@ MarkerClusterer.prototype.isMarkerInBounds_ = function (marker, bounds) {
  *
  * @param {google.maps.Marker} marker The marker to add.
  */
-MarkerClusterer.prototype.addToClosestCluster_ = function (marker, clustersTree, zoom) {
-    var i, d, center, markerCenter;
-    var distance = 40000; // Some large number
-    var clusterToAddTo = null;
-    markerCenter = marker.getPosition();
-    var markerLat = markerCenter.lat();
-    var markerLng = markerCenter.lng();
-    // TODO: improve performance
+MarkerClusterer.prototype.addToClosestCluster_ = function (newClusters, clustersTree, zoom) {
+    var i, j, d, center, newClusterCenter, newCluster, cluster, clusters, markers;
+    var N = newClusters.length, n;
+    var distance, alpha;
+    var clusterToAddTo;
+    var markerLat, markerLng;
+    var diff = [];
+    var diffObj = {};
     var _self = this;
-    //                      0      1     2     3     4    5    6    7    8   9   10  11  12  13 14   15
-    var zoomLeveDistance = [12800, 6400, 3200, 1600, 800, 400, 200, 100, 50, 20, 10, 5,  2,  1, 0.5, 0.25];
-    var alpha = Math.atan(zoomLeveDistance[zoom]/6353);
-    var clusters = clustersTree.find({lat: markerLat, lng: markerLng}, alpha * 250);
-    //clustersTree.forEach(function(cluster) {
-    var c = 0;
-    for(i = 0; i < clusters.length; i++) {
-        cluster = clusters[i];
-        center = cluster.getCenter();
-        if (center) {
-            d = _self.distanceBetweenPoints_(center, markerCenter);
-            if (d < distance) {
-                distance = d;
-                clusterToAddTo = cluster;
+    var latKM;
+
+    // TODO: improve performance
+    //                      0      1     2     3     4    5    6    7    8   9   10  11  12  13 14   15   16   17    18    19    20     21     22
+    var zoomLeveDistance = [12800, 6400, 3200, 1600, 800, 400, 200, 100, 50, 20, 10, 5,  2,  1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001];
+
+    alpha = zoomLeveDistance[zoom] / 110.54;
+
+    for(j = 0; j < N; j++) {
+        newCluster = newClusters[j];
+        distance = 40000; // Some large number
+        clusterToAddTo = null;
+        newClusterCenter = newCluster.getCenter();
+        markerLat = newClusterCenter.lat();
+        markerLng = newClusterCenter.lng();
+
+        clusters = clustersTree.find({lat: markerLat, lng: markerLng}, alpha);
+        for(i = 0; i < clusters.length; i++) {
+            cluster = clusters[i];
+            center = cluster.getCenter();
+            if (center) {
+                d = (markerLat - center.lat()) * (markerLat - center.lat()) + (markerLng - center.lng()) * (markerLng - center.lng());
+                if (d < distance) {
+                    distance = d;
+                    clusterToAddTo = cluster;
+                }
             }
-            if(d<zoomLeveDistance[zoom]) {
-                c++;
+        }
+        if (clusterToAddTo && _self.distanceBetweenPoints_(clusterToAddTo.getCenter(), newClusterCenter) < zoomLeveDistance[zoom]) {
+            markers = newCluster.getMarkers();
+            if(!diffObj[clusterToAddTo.id]) {
+                diffObj[clusterToAddTo.id] = new Cluster(this);
+            }
+            for(i = 0, n = markers.length; i < n; i++) {
+                clusterToAddTo.addMarker(markers[i]);
+                diffObj[clusterToAddTo.id].addMarker(markers[i]);
+            }
+        } else {
+            clustersTree.insert(newClusterCenter.lat(), newClusterCenter.lng(), newCluster);
+            diffObj[newCluster.id] = new Cluster(this);
+            markers = newCluster.getMarkers();
+            for(i = 0, n = markers.length; i < n; i++) {
+                diffObj[newCluster.id].addMarker(markers[i]);
             }
         }
     }
-//    });
-
-    if (clusterToAddTo && distance < zoomLeveDistance[zoom]) {
-        clusterToAddTo.addMarker(marker);
-    } else {
-        var cluster = new Cluster(this);
-        cluster.addMarker(marker);
-        center = cluster.getCenter();
-        clustersTree.insert(center.lat(), center.lng(), cluster);
-    }
+    _.forEach(diffObj, function(cluster) {
+        diff.push(cluster);
+    });
+    return diff;
 };
 
-MarkerClusterer.prototype.updateClusters_ = function (marker) {
-    var i;
-    var zoom;
+/**
+ * Adds a marker to a cluster, or creates a new cluster.
+ *
+ * @param {google.maps.Marker} marker The marker to add.
+ */
+MarkerClusterer.prototype.addMarkerToClosestCluster_ = function (markers, clustersTree, zoom) {
+    var i, j, d, center, newMarkerPosition, newCluster, cluster, clusters, marker;
+    var N = markers.length;
+    var distance, alpha;
+    var clusterToAddTo;
+    var markerLat, markerLng;
+    var diff = [];
+    var diffObj = {};
+    var _self = this;
 
-    // go through all zooms this.maxZoomLevel
-    for (zoom = this.maxZoomLevel ; zoom >= 0 ; zoom--) {
-    //zoom = 12;
-        this.addToClosestCluster_(marker, this.zoomLevelsClusters[zoom], zoom);
+    // TODO: improve performance
+    //                      0      1     2     3     4    5    6    7    8   9   10  11  12  13 14   15   16   17    18    19    20     21     22
+    var zoomLeveDistance = [12800, 6400, 3200, 1600, 800, 400, 200, 100, 50, 20, 10, 5,  2,  1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001];
+
+    alpha = zoomLeveDistance[zoom] / 110.54;
+
+    for(j = 0; j < N; j++) {
+        marker = markers[j];
+        distance = 40000; // Some large number
+        clusterToAddTo = null;
+        newMarkerPosition = marker.getPosition();
+        markerLat = newMarkerPosition.lat();
+        markerLng = newMarkerPosition.lng();
+
+        clusters = clustersTree.find({lat: markerLat, lng: markerLng}, alpha);
+        for(i = 0; i < clusters.length; i++) {
+            cluster = clusters[i];
+            center = cluster.getCenter();
+            if (center) {
+                d = (markerLat - center.lat()) * (markerLat - center.lat()) + (markerLng - center.lng()) * (markerLng - center.lng());
+                if (d < distance) {
+                    distance = d;
+                    clusterToAddTo = cluster;
+                }
+            }
+        }
+        if (clusterToAddTo && _self.distanceBetweenPoints_(clusterToAddTo.getCenter(), newMarkerPosition) < zoomLeveDistance[zoom]) {
+            clusterToAddTo.addMarker(marker);
+            clusterToAddTo.updated = true;
+        } else {
+            newCluster = new Cluster(this);
+            newCluster.addMarker(marker);
+            newCluster.updated = true;
+            clustersTree.insert(newMarkerPosition.lat(), newMarkerPosition.lng(), newCluster);
+        }
     }
+
+    return diff;
+};
+
+MarkerClusterer.prototype.updateClusters_ = function (markers) {
+    var i, N;
+    var zoom;
+    var diff = [];
+
+    zoom = this.getMap().getZoom();
+    this.addMarkerToClosestCluster_(markers, this.zoomLevelsClusters[zoom], zoom);
 };
 
 MarkerClusterer.prototype.getViewBox = function () {
@@ -8179,13 +8267,16 @@ MarkerClusterer.prototype.createClusters_ = function (iFirst) {
     if(zoom !== this.currentZoomLevel && this.clustersInView) {
         this.clustersInView.forEach(function(cluster) {
             cluster.hideIcon_();
+            cluster.visible = false;
         });
     }
 
+    var start, end;
     console.log('new markers to add: ' + this.markers_.length);
-    for(i = 0; i < this.markers_.length; i++) {
-        this.updateClusters_(this.markers_[i]);
-    }
+    start = new Date();
+    this.updateClusters_(this.markers_);
+    end = new Date();
+    console.log('new markers added: ' + (end - start) / 1000 + 's');
     this.markers_ = [];
 
     // Get our current map view bounds.
@@ -8237,6 +8328,7 @@ MarkerClusterer.prototype.createClusters_ = function (iFirst) {
           removed += clusters.length;
           _.forEach(clusters, function(cluster) {
               cluster.hideIcon_();
+              cluster.visible = false;
           });
         });
         var end = new Date();
@@ -8250,7 +8342,11 @@ MarkerClusterer.prototype.createClusters_ = function (iFirst) {
           clusters = clustersTree.find(region.ne, region.sw);
           added += clusters.length;
           _.forEach(clusters, function(cluster) {
-              cluster.updateIcon_();
+              if(!_self.dirty || (_self.dirty && cluster.updated) || !cluster.visible) {
+                cluster.updateIcon_();
+                cluster.updated = false;
+                cluster.visible = true;
+              }
           });
           if(_self.clustersInView) {
             _self.clustersInView = _self.clustersInView.concat(clusters);
