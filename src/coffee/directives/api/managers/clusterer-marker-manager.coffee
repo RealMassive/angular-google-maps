@@ -44,34 +44,20 @@ angular.module("google-maps.directives.api.managers")
         if not @zoom
           @zoom = zoom
 
-        added = 0
-
-        #updateRegions = @getUpdateRegions @currentViewBox, viewBox, @dirty, @zoom - zoom
+        _self = @
         # show markers which are new in view
-        start = new Date()
-        #for region in updateRegions.add
-          #markers = @gMarkers.find region.ne, region.sw
-        markers = @gMarkers.find viewBox.ne, viewBox.sw
-        added += markers.length
-        for marker in markers
-          if not marker.visible
-            marker.visible = {}
-          if not marker.visible[zoom]
-            @clusterer.addMarker marker, true
+        @gMarkers.find viewBox.ne, viewBox.sw, (marker) ->
+          marker.visible = {} if not marker.visible
+          if not (marker.visible && marker.visible[zoom])
+            _self.clusterer.addMarker marker, true
             marker.visible[zoom] = true
-        end = new Date()
-        console.log 'update time: ' + (end - start) / 1000 + 's'
+          false
 
         @currentViewBox = viewBox
         @dirty = false
         @zoom = zoom
-        console.log 'added: ' + added + ' markers'
 
-        console.log 'repainting clusters'
-        start = new Date()
         @clusterer.repaint()
-        end = new Date()
-        console.log 'clusters repainted: ' + (end - start) / 1000 + 's'
 
       clear: ()=>
         @clusterer.clearMarkers()

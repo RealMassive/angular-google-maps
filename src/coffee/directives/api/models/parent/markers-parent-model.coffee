@@ -29,11 +29,14 @@ angular.module("google-maps.directives.api.models.parent")
                 _mySelf = @
                 @map = @mapCtrl.getMap()
                 #google.maps.event.addListener @map, "drag", ->
-                #    _mySelf.updateView _mySelf, scope
+                #    if _mySelf.dirty(_mySelf)
+                #        _mySelf.updateView _mySelf, scope
                 #google.maps.event.addListener @map, "zoom_changed", ->
-                #    _mySelf.updateView _mySelf, scope
+                #    if _mySelf.dirty(_mySelf)
+                #        _mySelf.updateView _mySelf, scope
                 google.maps.event.addListener @map, "idle", ->
-                    _mySelf.updateView _mySelf, scope
+                    if _mySelf.dirty(_mySelf)
+                        _mySelf.updateView _mySelf, scope
 
             onWatch: (propNameToWatch, scope, newValue, oldValue) =>
                 if propNameToWatch == "idKey" and newValue != oldValue
@@ -115,19 +118,40 @@ angular.module("google-maps.directives.api.models.parent")
                             } }
                 boundary
 
+            dirty: (_mySelf) =>
+                center = _mySelf.map.getCenter()
+                zoom = _mySelf.map.getZoom()
+                if not _mySelf.center || _mySelf.center != center || not _mySelf.zoom || _mySelf.zoom != zoom
+                    _mySelf.center = center
+                    _mySelf.zoom = zoom
+                    return true
+                false
+
+            fixBoundaries: (boundary) =>
+                if boundary.ne.lng < boundary.sw.lng
+                    boundary.sw.lng = if boundary.ne.lng > 0 then -180 else 180
+
             updateView: (_mySelf, scope) =>
-                #return
+                if _mySelf.inProgress
+                    return
+                _mySelf.inProgress = true
                 map = _mySelf.map
                 boundary = _mySelf.mapBoundingBox map
                 if not boundary
+                    _mySelf.inProgress = false
                     return
-                if _mySelf.viewInProgress
+                now = new Date()
+                if now - _mySelf.lastUpdate <= 250
+                    _mySelf.inProgress = false
                     return
-                _mySelf.viewInProgress = true
+                _mySelf.lastUpdate = now
+
+                console.log 'updating view'
                 zoom = map.zoom
                 console.log 'update map view'
+                _mySelf.fixBoundaries boundary
                 _mySelf.gMarkerManager.draw boundary, zoom
-                _mySelf.viewInProgress = false
+                _mySelf.inProgress = false
 
 
             reBuildMarkers: (scope) =>
