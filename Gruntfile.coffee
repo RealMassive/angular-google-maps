@@ -165,7 +165,7 @@ module.exports = (grunt) ->
 
     # Default task: build a release in dist/
     grunt.registerTask "default", ["clean:dist", "jshint", "mkdir", "coffee", "concat:dist", "copy:dist",
-                                 "uglify", "jasmine:spec"]
+                                 "uglify"]
 
     # run default "grunt" prior to generate _SpecRunner.html
     grunt.registerTask "spec", ["clean:dist", "jshint", "mkdir", "coffee", "concat:dist", "copy:dist",
