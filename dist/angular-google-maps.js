@@ -1379,6 +1379,9 @@ Nicholas McCready - https://twitter.com/nmccready
         MarkerManager.prototype.draw = function(viewBox, zoom) {
           var added, data, end, marker, markers, region, removed, start, updateRegions, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref, _ref1;
           if (!viewBox) {
+            viewBox = this.currentViewBox;
+          }
+          if (!viewBox) {
             return;
           }
           if (!this.currentViewBox) {

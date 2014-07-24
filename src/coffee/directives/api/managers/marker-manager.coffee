@@ -27,6 +27,7 @@ angular.module("google-maps.directives.api.managers")
         @remove(model) for model in models
 
       draw: (viewBox, zoom)=>
+        viewBox = @currentViewBox if not viewBox
         return unless viewBox
 
         if not @currentViewBox
