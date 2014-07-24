@@ -102,6 +102,7 @@ angular.module("google-maps.directives.api")
 
                             # update map view zoom
                             scope.zoom = z
+                    google.maps.event.trigger _m, "resize"
 
                 if angular.isDefined(scope.events) and scope.events isnt null and angular.isObject(scope.events)
                     getEventHandler = (eventName) ->
@@ -172,4 +173,7 @@ angular.module("google-maps.directives.api")
                         opts.styles = newValue
                         _m.setOptions opts  if _m?
                 ,true
+
+                element.on 'resize', () =>
+                    google.maps.event.trigger _m, "resize"
     ]

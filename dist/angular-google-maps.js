@@ -1,4 +1,4 @@
-/*! angular-google-maps 1.1.3 2014-07-21
+/*! angular-google-maps 1.1.3 2014-07-24
  *  AngularJS directives for Google Maps
  *  git: https://github.com/nlaplante/angular-google-maps.git
  */
@@ -599,7 +599,6 @@ Nicholas McCready - https://twitter.com/nmccready
             bigBB = this.getBigBoundingBox(currentViewBox, viewBox);
             smallBB = this.getSmallBoundingBox(currentViewBox, viewBox);
             dirRM = this.getViewShiftDirection(smallBB, currentViewBox);
-            console.log(dirRM);
             dirADD = {
               lat: -dirRM.lat,
               lng: -dirRM.lng
@@ -1405,7 +1404,6 @@ Nicholas McCready - https://twitter.com/nmccready
             }
           }
           end = new Date();
-          console.log('remove time: ' + (end - start) / 1000 + 's');
           start = new Date();
           _ref1 = updateRegions.add;
           for (_k = 0, _len2 = _ref1.length; _k < _len2; _k++) {
@@ -1425,11 +1423,9 @@ Nicholas McCready - https://twitter.com/nmccready
             }
           }
           end = new Date();
-          console.log('update time: ' + (end - start) / 1000 + 's');
           this.currentViewBox = viewBox;
           this.dirty = false;
-          this.zoom = zoom;
-          return console.log('markers added: ' + added + ', markers removed: ' + removed);
+          return this.zoom = zoom;
         };
 
         MarkerManager.prototype.clear = function() {
@@ -2906,9 +2902,7 @@ Nicholas McCready - https://twitter.com/nmccready
           } else {
             this.gMarkerManager = new MarkerManager(this.mapCtrl.getMap(), scope, this.DEFAULTS, this.doClick, this.idKey);
           }
-          console.log('adding new markers');
           this.gMarkerManager.addMany(scope.models);
-          console.log('markers added');
           this.updateView(this, scope);
           if (scope.fit) {
             return this.gMarkerManager.fit();
@@ -2973,9 +2967,7 @@ Nicholas McCready - https://twitter.com/nmccready
             return;
           }
           _mySelf.lastUpdate = now;
-          console.log('updating view');
           zoom = map.zoom;
-          console.log('update map view');
           _mySelf.fixBoundaries(boundary);
           _mySelf.gMarkerManager.draw(boundary, zoom);
           return _mySelf.inProgress = false;
@@ -3946,7 +3938,7 @@ Nicholas McCready - https://twitter.com/nmccready
             sw = b.getSouthWest();
             c = _m.center;
             z = _m.zoom;
-            return $timeout(function() {
+            $timeout(function() {
               if (scope.bounds !== null && scope.bounds !== undefined && scope.bounds !== void 0) {
                 scope.bounds.northeast = {
                   latitude: ne.lat(),
@@ -3974,6 +3966,7 @@ Nicholas McCready - https://twitter.com/nmccready
               }
               return scope.zoom = z;
             });
+            return google.maps.event.trigger(_m, "resize");
           });
           if (angular.isDefined(scope.events) && scope.events !== null && angular.isObject(scope.events)) {
             getEventHandler = function(eventName) {
@@ -4059,7 +4052,7 @@ Nicholas McCready - https://twitter.com/nmccready
               }
             }
           }, true);
-          return scope.$watch("styles", function(newValue, oldValue) {
+          scope.$watch("styles", function(newValue, oldValue) {
             if (!_.isEqual(newValue, oldValue)) {
               opts.styles = newValue;
               if (_m != null) {
@@ -4067,6 +4060,9 @@ Nicholas McCready - https://twitter.com/nmccready
               }
             }
           }, true);
+          return element.on('resize', function() {
+            return google.maps.event.trigger(_m, "resize");
+          });
         };
 
         return Map;

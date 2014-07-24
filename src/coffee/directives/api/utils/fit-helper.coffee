@@ -191,7 +191,6 @@ angular.module("google-maps.directives.api.utils")
             smallBB = @getSmallBoundingBox currentViewBox, viewBox
 
             dirRM = @getViewShiftDirection smallBB, currentViewBox
-            console.log dirRM
             dirADD = { lat: -dirRM.lat, lng: -dirRM.lng }
 
             removeBBLat = @getBBLat bigBB, smallBB, dirRM
