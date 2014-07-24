@@ -35,6 +35,7 @@ angular.module("google-maps.directives.api.managers")
         #@clusterer.removeModels(gMarkers)
 
       draw: (viewBox, zoom) =>
+        viewBox = @currentViewBox if not viewBox
         return unless viewBox
 
         if not @currentViewBox

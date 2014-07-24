@@ -1211,6 +1211,9 @@ Nicholas McCready - https://twitter.com/nmccready
         ClustererMarkerManager.prototype.draw = function(viewBox, zoom) {
           var _self;
           if (!viewBox) {
+            viewBox = this.currentViewBox;
+          }
+          if (!viewBox) {
             return;
           }
           if (!this.currentViewBox) {
@@ -2905,8 +2908,9 @@ Nicholas McCready - https://twitter.com/nmccready
           this.gMarkerManager.addMany(scope.models);
           this.updateView(this, scope);
           if (scope.fit) {
-            return this.gMarkerManager.fit();
+            this.gMarkerManager.fit();
           }
+          return this.gMarkerManager.draw();
         };
 
         MarkersParentModel.prototype.mapBoundingBox = function(map) {

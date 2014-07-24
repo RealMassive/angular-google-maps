@@ -100,6 +100,7 @@ angular.module("google-maps.directives.api.models.parent")
                 @gMarkerManager.addMany scope.models
                 @updateView this, scope
                 @gMarkerManager.fit() if scope.fit
+                @gMarkerManager.draw()
 
             mapBoundingBox: (map) =>
                 if map
