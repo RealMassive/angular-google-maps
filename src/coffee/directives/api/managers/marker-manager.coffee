@@ -50,7 +50,6 @@ angular.module("google-maps.directives.api.managers")
               @show data.gMarker, false
               marker.visible = false
         end = new Date()
-        console.log 'remove time: ' + (end - start) / 1000 + 's'
 
         # show markers which are new in view
         start = new Date()
@@ -65,12 +64,10 @@ angular.module("google-maps.directives.api.managers")
               @show marker.data.gMarker, true
               marker.visible = true
         end = new Date()
-        console.log 'update time: ' + (end - start) / 1000 + 's'
 
         @currentViewBox = viewBox
         @dirty = false
         @zoom = zoom
-        console.log 'markers added: ' + added + ', markers removed: ' + removed
 
       clear: =>
         @gMarkers.forEach (marker) ->

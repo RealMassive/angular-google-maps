@@ -97,9 +97,7 @@ angular.module("google-maps.directives.api.models.parent")
                 else
                     @gMarkerManager = new MarkerManager(@mapCtrl.getMap(), scope, @DEFAULTS, @doClick, @idKey)
 
-                console.log 'adding new markers'
                 @gMarkerManager.addMany scope.models
-                console.log 'markers added'
                 @updateView this, scope
                 @gMarkerManager.fit() if scope.fit
 
@@ -146,9 +144,7 @@ angular.module("google-maps.directives.api.models.parent")
                     return
                 _mySelf.lastUpdate = now
 
-                console.log 'updating view'
                 zoom = map.zoom
-                console.log 'update map view'
                 _mySelf.fixBoundaries boundary
                 _mySelf.gMarkerManager.draw boundary, zoom
                 _mySelf.inProgress = false
