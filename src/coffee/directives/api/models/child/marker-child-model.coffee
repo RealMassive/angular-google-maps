@@ -125,7 +125,7 @@ angular.module("google-maps.directives.api.models.child")
 
         watchDestroy: (scope)=>
           scope.$on "$destroy", =>
-            if @gMarker? #this is possible due to _async in that we created some Children but no gMarker yet
+            if (@gMarker && @gMarkerManager)? #this is possible due to _async in that we created some Children but no gMarker yet
               google.maps.event.clearListeners @gMarker, 'click'
               if @parentScope?.events and _.isArray @parentScope.events
                 @parentScope.events.forEach (event, eventName) ->

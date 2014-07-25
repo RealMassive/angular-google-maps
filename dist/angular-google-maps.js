@@ -2019,7 +2019,7 @@ Nicholas McCready - https://twitter.com/nmccready
           var _this = this;
           return scope.$on("$destroy", function() {
             var self, _ref;
-            if (_this.gMarker != null) {
+            if ((_this.gMarker && _this.gMarkerManager) != null) {
               google.maps.event.clearListeners(_this.gMarker, 'click');
               if (((_ref = _this.parentScope) != null ? _ref.events : void 0) && _.isArray(_this.parentScope.events)) {
                 _this.parentScope.events.forEach(function(event, eventName) {
