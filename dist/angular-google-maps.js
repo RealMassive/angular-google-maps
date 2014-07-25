@@ -1,4 +1,4 @@
-/*! angular-google-maps 1.1.3 2014-07-24
+/*! angular-google-maps 1.1.3 2014-07-25
  *  AngularJS directives for Google Maps
  *  git: https://github.com/nlaplante/angular-google-maps.git
  */
@@ -2809,6 +2809,7 @@ Nicholas McCready - https://twitter.com/nmccready
           this.dirty = __bind(this.dirty, this);
           this.mapBoundingBox = __bind(this.mapBoundingBox, this);
           this.createMarkersFromScratch = __bind(this.createMarkersFromScratch, this);
+          this.redrawMap = __bind(this.redrawMap, this);
           this.validateScope = __bind(this.validateScope, this);
           this.onWatch = __bind(this.onWatch, this);
           this.onTimeOut = __bind(this.onTimeOut, this);
@@ -2842,7 +2843,11 @@ Nicholas McCready - https://twitter.com/nmccready
           this.map = this.mapCtrl.getMap();
           return google.maps.event.addListener(this.map, "idle", function() {
             if (_mySelf.dirty(_mySelf)) {
-              return _mySelf.updateView(_mySelf, scope);
+              _mySelf.updateView(_mySelf, scope);
+            }
+            if (!_mySelf.initialized) {
+              _mySelf.redrawMap(_mySelf.map);
+              return _mySelf.initialized = true;
             }
           });
         };
@@ -2865,6 +2870,16 @@ Nicholas McCready - https://twitter.com/nmccready
             this.$log.error(this.constructor.name + ": no valid models attribute found");
           }
           return MarkersParentModel.__super__.validateScope.call(this, scope) || modelsNotDefined;
+        };
+
+        MarkersParentModel.prototype.redrawMap = function(map) {
+          var boundary, zoom;
+          boundary = this.mapBoundingBox(map);
+          zoom = map.zoom;
+          if (boundary) {
+            this.fixBoundaries(boundary);
+          }
+          return this.gMarkerManager.draw(boundary, zoom);
         };
 
         MarkersParentModel.prototype.createMarkersFromScratch = function(scope) {
@@ -2913,7 +2928,7 @@ Nicholas McCready - https://twitter.com/nmccready
           if (scope.fit) {
             this.gMarkerManager.fit();
           }
-          return this.gMarkerManager.draw();
+          return this.redrawMap(this.mapCtrl.getMap());
         };
 
         MarkersParentModel.prototype.mapBoundingBox = function(map) {

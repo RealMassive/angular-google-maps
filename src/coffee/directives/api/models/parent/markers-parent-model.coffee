@@ -37,6 +37,10 @@ angular.module("google-maps.directives.api.models.parent")
                 google.maps.event.addListener @map, "idle", ->
                     if _mySelf.dirty(_mySelf)
                         _mySelf.updateView _mySelf, scope
+                    # during first idle, force redraw map
+                    if not _mySelf.initialized
+                        _mySelf.redrawMap _mySelf.map
+                        _mySelf.initialized = true
 
             onWatch: (propNameToWatch, scope, newValue, oldValue) =>
                 if propNameToWatch == "idKey" and newValue != oldValue
@@ -53,6 +57,12 @@ angular.module("google-maps.directives.api.models.parent")
                     @$log.error(@constructor.name + ": no valid models attribute found")
 
                 super(scope) or modelsNotDefined
+
+            redrawMap: (map) =>
+                boundary = @mapBoundingBox map
+                zoom = map.zoom
+                @fixBoundaries boundary if boundary
+                @gMarkerManager.draw boundary, zoom
 
             createMarkersFromScratch: (scope) =>
                 if scope.doCluster
@@ -100,7 +110,7 @@ angular.module("google-maps.directives.api.models.parent")
                 @gMarkerManager.addMany scope.models
                 @updateView this, scope
                 @gMarkerManager.fit() if scope.fit
-                @gMarkerManager.draw()
+                @redrawMap @mapCtrl.getMap()
 
             mapBoundingBox: (map) =>
                 if map
