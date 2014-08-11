@@ -55,10 +55,14 @@ angular.module("google-maps.directives.api.managers")
           false
 
         @currentViewBox = viewBox
-        @dirty = false
         @zoom = zoom
 
-        @clusterer.repaint()
+        @clusterer.repaint @dirty
+        @dirty = false
+
+      redraw: (viewBox, zoom) =>
+        @dirty = true
+        @draw viewBox, zoom
 
       clear: ()=>
         @clusterer.clearMarkers()

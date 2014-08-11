@@ -1,4 +1,4 @@
-/*! angular-google-maps 1.1.3 2014-07-25
+/*! angular-google-maps 1.1.3 2014-08-11
  *  AngularJS directives for Google Maps
  *  git: https://github.com/nlaplante/angular-google-maps.git
  */
@@ -1153,6 +1153,7 @@ Nicholas McCready - https://twitter.com/nmccready
           this.fit = __bind(this.fit, this);
           this.destroy = __bind(this.destroy, this);
           this.clear = __bind(this.clear, this);
+          this.redraw = __bind(this.redraw, this);
           this.draw = __bind(this.draw, this);
           this.removeMany = __bind(this.removeMany, this);
           this.remove = __bind(this.remove, this);
@@ -1235,9 +1236,14 @@ Nicholas McCready - https://twitter.com/nmccready
             return false;
           });
           this.currentViewBox = viewBox;
-          this.dirty = false;
           this.zoom = zoom;
-          return this.clusterer.repaint();
+          this.clusterer.repaint(this.dirty);
+          return this.dirty = false;
+        };
+
+        ClustererMarkerManager.prototype.redraw = function(viewBox, zoom) {
+          this.dirty = true;
+          return this.draw(viewBox, zoom);
         };
 
         ClustererMarkerManager.prototype.clear = function() {
@@ -2841,7 +2847,7 @@ Nicholas McCready - https://twitter.com/nmccready
           this.createMarkersFromScratch(scope);
           _mySelf = this;
           this.map = this.mapCtrl.getMap();
-          return google.maps.event.addListener(this.map, "idle", function() {
+          google.maps.event.addListener(this.map, "idle", function() {
             if (_mySelf.dirty(_mySelf)) {
               _mySelf.updateView(_mySelf, scope);
             }
@@ -2849,6 +2855,9 @@ Nicholas McCready - https://twitter.com/nmccready
               _mySelf.redrawMap(_mySelf.map);
               return _mySelf.initialized = true;
             }
+          });
+          return google.maps.event.addListener(this.map, "resize", function() {
+            return _mySelf.initialized = false;
           });
         };
 
@@ -2879,7 +2888,7 @@ Nicholas McCready - https://twitter.com/nmccready
           if (boundary) {
             this.fixBoundaries(boundary);
           }
-          return this.gMarkerManager.draw(boundary, zoom);
+          return this.gMarkerManager.redraw(boundary, zoom);
         };
 
         MarkersParentModel.prototype.createMarkersFromScratch = function(scope) {
@@ -3960,7 +3969,7 @@ Nicholas McCready - https://twitter.com/nmccready
             sw = b.getSouthWest();
             c = _m.center;
             z = _m.zoom;
-            $timeout(function() {
+            return $timeout(function() {
               if (scope.bounds !== null && scope.bounds !== undefined && scope.bounds !== void 0) {
                 scope.bounds.northeast = {
                   latitude: ne.lat(),
@@ -3988,7 +3997,6 @@ Nicholas McCready - https://twitter.com/nmccready
               }
               return scope.zoom = z;
             });
-            return google.maps.event.trigger(_m, "resize");
           });
           if (angular.isDefined(scope.events) && scope.events !== null && angular.isObject(scope.events)) {
             getEventHandler = function(eventName) {
@@ -4009,7 +4017,6 @@ Nicholas McCready - https://twitter.com/nmccready
               if (_m == null) {
                 return;
               }
-              google.maps.event.trigger(_m, "resize");
               if (((maybeCoords != null ? maybeCoords.latitude : void 0) != null) && ((maybeCoords != null ? maybeCoords.latitude : void 0) != null)) {
                 coords = _this.getCoords(maybeCoords);
                 if (_this.isTrue(attrs.pan)) {
@@ -7853,7 +7860,8 @@ MarkerClusterer.prototype.clearMarkers = function () {
  * Recalculates and redraws all the marker clusters from scratch.
  *  Call this after changing any properties.
  */
-MarkerClusterer.prototype.repaint = function () {
+MarkerClusterer.prototype.repaint = function (dirty) {
+    this.dirty = dirty;
     this.redraw_();
 };
 
@@ -8245,8 +8253,8 @@ MarkerClusterer.prototype.getUpdateRegions = function(currentViewBox, viewBox, d
         update = [viewBox];
     }
 
-    if(dirty && smallBB)
-        update.push(smallBB);
+    if(dirty)
+        update = [viewBox];
 
     return {
         remove: remove,

@@ -102,7 +102,7 @@ angular.module("google-maps.directives.api")
 
                             # update map view zoom
                             scope.zoom = z
-                    google.maps.event.trigger _m, "resize"
+                    #google.maps.event.trigger _m, "resize"
 
                 if angular.isDefined(scope.events) and scope.events isnt null and angular.isObject(scope.events)
                     getEventHandler = (eventName) ->
@@ -122,7 +122,7 @@ angular.module("google-maps.directives.api")
                 if attrs.control? and scope.control?
                     scope.control.refresh = (maybeCoords) =>
                         return unless _m?
-                        google.maps.event.trigger _m, "resize" #actually refresh
+                        #google.maps.event.trigger _m, "resize" #actually refresh
                         if maybeCoords?.latitude? and maybeCoords?.latitude?
                             coords = @getCoords(maybeCoords)
                             if @isTrue(attrs.pan)

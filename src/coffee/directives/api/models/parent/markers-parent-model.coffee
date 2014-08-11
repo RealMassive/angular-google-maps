@@ -41,6 +41,8 @@ angular.module("google-maps.directives.api.models.parent")
                     if not _mySelf.initialized
                         _mySelf.redrawMap _mySelf.map
                         _mySelf.initialized = true
+                google.maps.event.addListener @map, "resize", ->
+                    _mySelf.initialized = false
 
             onWatch: (propNameToWatch, scope, newValue, oldValue) =>
                 if propNameToWatch == "idKey" and newValue != oldValue
@@ -62,7 +64,7 @@ angular.module("google-maps.directives.api.models.parent")
                 boundary = @mapBoundingBox map
                 zoom = map.zoom
                 @fixBoundaries boundary if boundary
-                @gMarkerManager.draw boundary, zoom
+                @gMarkerManager.redraw boundary, zoom
 
             createMarkersFromScratch: (scope) =>
                 if scope.doCluster
