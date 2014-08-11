@@ -2811,6 +2811,7 @@ Nicholas McCready - https://twitter.com/nmccready
           this.pieceMealMarkers = __bind(this.pieceMealMarkers, this);
           this.reBuildMarkers = __bind(this.reBuildMarkers, this);
           this.updateView = __bind(this.updateView, this);
+          this.updateInProgress = __bind(this.updateInProgress, this);
           this.fixBoundaries = __bind(this.fixBoundaries, this);
           this.dirty = __bind(this.dirty, this);
           this.mapBoundingBox = __bind(this.mapBoundingBox, this);
@@ -2818,6 +2819,7 @@ Nicholas McCready - https://twitter.com/nmccready
           this.redrawMap = __bind(this.redrawMap, this);
           this.validateScope = __bind(this.validateScope, this);
           this.onWatch = __bind(this.onWatch, this);
+          this.isMapResized = __bind(this.isMapResized, this);
           this.onTimeOut = __bind(this.onTimeOut, this);
           var self,
             _this = this;
@@ -2848,17 +2850,36 @@ Nicholas McCready - https://twitter.com/nmccready
           _mySelf = this;
           this.map = this.mapCtrl.getMap();
           google.maps.event.addListener(this.map, "idle", function() {
-            if (_mySelf.dirty(_mySelf)) {
-              _mySelf.updateView(_mySelf, scope);
-            }
-            if (!_mySelf.initialized) {
+            if (!_mySelf.initialized || _mySelf.isMapResized()) {
               _mySelf.redrawMap(_mySelf.map);
               return _mySelf.initialized = true;
+            } else {
+              return _mySelf.updateView(_mySelf, scope);
             }
           });
-          return google.maps.event.addListener(this.map, "resize", function() {
-            return _mySelf.initialized = false;
+          return $(window).resize(function() {
+            return _mySelf.$timeout(function() {
+              _mySelf.initialized = false;
+              return google.maps.event.trigger(_mySelf.map, "resize");
+            });
           });
+        };
+
+        MarkersParentModel.prototype.isMapResized = function() {
+          var $googleMap, newHeight, newWidth, ret;
+          $googleMap = this.element.parents('.google-map');
+          if (!$googleMap.length) {
+            return false;
+          }
+          newWidth = $googleMap.width();
+          newHeight = $googleMap.height();
+          ret = false;
+          if (newWidth !== this.mapWidth || newHeight !== this.mapHeight) {
+            this.mapWidth = newWidth;
+            this.mapHeight = newHeight;
+            ret = true;
+          }
+          return ret;
         };
 
         MarkersParentModel.prototype.onWatch = function(propNameToWatch, scope, newValue, oldValue) {
@@ -2883,12 +2904,16 @@ Nicholas McCready - https://twitter.com/nmccready
 
         MarkersParentModel.prototype.redrawMap = function(map) {
           var boundary, zoom;
+          if (this.updateInProgress()) {
+            return;
+          }
           boundary = this.mapBoundingBox(map);
           zoom = map.zoom;
           if (boundary) {
             this.fixBoundaries(boundary);
           }
-          return this.gMarkerManager.redraw(boundary, zoom);
+          this.gMarkerManager.redraw(boundary, zoom);
+          return this.inProgress = false;
         };
 
         MarkersParentModel.prototype.createMarkersFromScratch = function(scope) {
@@ -2980,25 +3005,32 @@ Nicholas McCready - https://twitter.com/nmccready
           }
         };
 
+        MarkersParentModel.prototype.updateInProgress = function() {
+          var now;
+          now = new Date();
+          if (now - this.lastUpdate <= 250) {
+            return true;
+          }
+          if (this.inProgress) {
+            return true;
+          }
+          this.inProgress = true;
+          this.lastUpdate = now;
+          return false;
+        };
+
         MarkersParentModel.prototype.updateView = function(_mySelf, scope) {
-          var boundary, map, now, zoom;
-          if (_mySelf.inProgress) {
+          var boundary, map, zoom;
+          if (this.updateInProgress()) {
             return;
           }
-          _mySelf.inProgress = true;
           map = _mySelf.map;
           boundary = _mySelf.mapBoundingBox(map);
           if (!boundary) {
             _mySelf.inProgress = false;
-            return;
+            return true;
           }
-          now = new Date();
-          if (now - _mySelf.lastUpdate <= 250) {
-            _mySelf.inProgress = false;
-            return;
-          }
-          _mySelf.lastUpdate = now;
-          zoom = map.zoom;
+          zoom = _mySelf.map.zoom;
           _mySelf.fixBoundaries(boundary);
           _mySelf.gMarkerManager.draw(boundary, zoom);
           return _mySelf.inProgress = false;

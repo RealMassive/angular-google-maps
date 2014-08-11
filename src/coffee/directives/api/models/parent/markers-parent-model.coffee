@@ -35,14 +35,31 @@ angular.module("google-maps.directives.api.models.parent")
                 #    if _mySelf.dirty(_mySelf)
                 #        _mySelf.updateView _mySelf, scope
                 google.maps.event.addListener @map, "idle", ->
-                    if _mySelf.dirty(_mySelf)
-                        _mySelf.updateView _mySelf, scope
-                    # during first idle, force redraw map
-                    if not _mySelf.initialized
+                    if !_mySelf.initialized || _mySelf.isMapResized()
+                        # during first idle, force redraw map
                         _mySelf.redrawMap _mySelf.map
                         _mySelf.initialized = true
-                google.maps.event.addListener @map, "resize", ->
-                    _mySelf.initialized = false
+                    else
+                        _mySelf.updateView _mySelf, scope
+                $(window).resize ->
+                    _mySelf.$timeout ->
+                        _mySelf.initialized = false
+                        google.maps.event.trigger _mySelf.map, "resize"
+
+            isMapResized: () =>
+                $googleMap = @element.parents '.google-map'
+                if(!$googleMap.length)
+                    return false
+
+                newWidth = $googleMap.width()
+                newHeight = $googleMap.height()
+
+                ret = false
+                if newWidth != @mapWidth || newHeight != @mapHeight
+                    @mapWidth = newWidth
+                    @mapHeight = newHeight
+                    ret = true
+                ret
 
             onWatch: (propNameToWatch, scope, newValue, oldValue) =>
                 if propNameToWatch == "idKey" and newValue != oldValue
@@ -61,10 +78,13 @@ angular.module("google-maps.directives.api.models.parent")
                 super(scope) or modelsNotDefined
 
             redrawMap: (map) =>
+                if @updateInProgress()
+                    return
                 boundary = @mapBoundingBox map
                 zoom = map.zoom
                 @fixBoundaries boundary if boundary
                 @gMarkerManager.redraw boundary, zoom
+                @inProgress = false
 
             createMarkersFromScratch: (scope) =>
                 if scope.doCluster
@@ -142,22 +162,27 @@ angular.module("google-maps.directives.api.models.parent")
                 if boundary.ne.lng < boundary.sw.lng
                     boundary.sw.lng = if boundary.ne.lng > 0 then -180 else 180
 
+            updateInProgress: () =>
+                now = new Date()
+                if now - @lastUpdate <= 250
+                    return true
+                if @inProgress
+                    return true
+                @inProgress = true
+                @lastUpdate = now
+                return false
+
             updateView: (_mySelf, scope) =>
-                if _mySelf.inProgress
+                if @updateInProgress()
                     return
-                _mySelf.inProgress = true
+
                 map = _mySelf.map
                 boundary = _mySelf.mapBoundingBox map
                 if not boundary
                     _mySelf.inProgress = false
-                    return
-                now = new Date()
-                if now - _mySelf.lastUpdate <= 250
-                    _mySelf.inProgress = false
-                    return
-                _mySelf.lastUpdate = now
+                    return true
 
-                zoom = map.zoom
+                zoom = _mySelf.map.zoom
                 _mySelf.fixBoundaries boundary
                 _mySelf.gMarkerManager.draw boundary, zoom
                 _mySelf.inProgress = false
