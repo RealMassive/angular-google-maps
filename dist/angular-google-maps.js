@@ -1,4 +1,4 @@
-/*! angular-google-maps 1.1.3 2014-08-11
+/*! angular-google-maps 1.1.3 2014-08-12
  *  AngularJS directives for Google Maps
  *  git: https://github.com/nlaplante/angular-google-maps.git
  */
@@ -1246,9 +1246,11 @@ Nicholas McCready - https://twitter.com/nmccready
           return this.draw(viewBox, zoom);
         };
 
-        ClustererMarkerManager.prototype.clear = function() {
+        ClustererMarkerManager.prototype.clear = function(dontRepaint) {
           this.clusterer.clearMarkers();
-          this.clusterer.repaint();
+          if (!dontRepaint) {
+            this.clusterer.repaint();
+          }
           this.gMarkers.forEach(function(marker) {
             if (marker.data.gMarker) {
               return marker.data.gMarker.setMap(null);
@@ -2850,7 +2852,7 @@ Nicholas McCready - https://twitter.com/nmccready
           _mySelf = this;
           this.map = this.mapCtrl.getMap();
           google.maps.event.addListener(this.map, "idle", function() {
-            if (!_mySelf.initialized || _mySelf.isMapResized()) {
+            if (_mySelf.isMapResized() || !_mySelf.initialized) {
               _mySelf.redrawMap(_mySelf.map);
               return _mySelf.initialized = true;
             } else {
@@ -2859,8 +2861,10 @@ Nicholas McCready - https://twitter.com/nmccready
           });
           return $(window).resize(function() {
             return _mySelf.$timeout(function() {
-              _mySelf.initialized = false;
-              return google.maps.event.trigger(_mySelf.map, "resize");
+              if (_mySelf.initialized) {
+                _mySelf.initialized = false;
+                return google.maps.event.trigger(_mySelf.map, "resize");
+              }
             });
           });
         };
@@ -2877,6 +2881,7 @@ Nicholas McCready - https://twitter.com/nmccready
           if (newWidth !== this.mapWidth || newHeight !== this.mapHeight) {
             this.mapWidth = newWidth;
             this.mapHeight = newHeight;
+            google.maps.event.trigger(this.map, "resize");
             ret = true;
           }
           return ret;
@@ -2958,7 +2963,6 @@ Nicholas McCready - https://twitter.com/nmccready
             this.gMarkerManager = new MarkerManager(this.mapCtrl.getMap(), scope, this.DEFAULTS, this.doClick, this.idKey);
           }
           this.gMarkerManager.addMany(scope.models);
-          this.updateView(this, scope);
           if (scope.fit) {
             this.gMarkerManager.fit();
           }
@@ -3084,7 +3088,7 @@ Nicholas McCready - https://twitter.com/nmccready
 
         MarkersParentModel.prototype.onDestroy = function(scope) {
           var showMarker;
-          this.gMarkerManager.clear();
+          this.gMarkerManager.clear(true);
           if (this.gMarkerManager != null) {
             showMarker = this.gMarkerManager.showMarker;
           }
@@ -4012,19 +4016,21 @@ Nicholas McCready - https://twitter.com/nmccready
                   longitude: sw.lng()
                 };
               }
-              if (angular.isDefined(scope.center.type)) {
-                if (scope.center.coordinates[1] !== c.lat()) {
-                  scope.center.coordinates[1] = c.lat();
-                }
-                if (scope.center.coordinates[0] !== c.lng()) {
-                  scope.center.coordinates[0] = c.lng();
-                }
-              } else {
-                if (scope.center.latitude !== c.lat()) {
-                  scope.center.latitude = c.lat();
-                }
-                if (scope.center.longitude !== c.lng()) {
-                  scope.center.longitude = c.lng();
+              if (scope.center && c) {
+                if (scope.center.type) {
+                  if (scope.center.coordinates[1] !== c.lat()) {
+                    scope.center.coordinates[1] = c.lat();
+                  }
+                  if (scope.center.coordinates[0] !== c.lng()) {
+                    scope.center.coordinates[0] = c.lng();
+                  }
+                } else {
+                  if (scope.center.latitude !== c.lat()) {
+                    scope.center.latitude = c.lat();
+                  }
+                  if (scope.center.longitude !== c.lng()) {
+                    scope.center.longitude = c.lng();
+                  }
                 }
               }
               return scope.zoom = z;
@@ -4068,6 +4074,9 @@ Nicholas McCready - https://twitter.com/nmccready
           }
           scope.$watch("center", (function(newValue, oldValue) {
             var coords;
+            if (!newValue) {
+              return;
+            }
             coords = _this.getCoords(newValue);
             if (coords.lat() === _m.center.lat() && coords.lng() === _m.center.lng()) {
               return;
@@ -4084,7 +4093,7 @@ Nicholas McCready - https://twitter.com/nmccready
             }
           }), true);
           scope.$watch("zoom", function(newValue, oldValue) {
-            if (newValue === _m.zoom) {
+            if (newValue === _m.zoom || typeof newValue === 'undefined' || newValue === null) {
               return;
             }
             return _.defer(function() {

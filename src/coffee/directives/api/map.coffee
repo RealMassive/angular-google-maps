@@ -93,12 +93,13 @@ angular.module("google-maps.directives.api")
                                     longitude: sw.lng()
 
                             # update map view center
-                            if angular.isDefined(scope.center.type)
-                                scope.center.coordinates[1] = c.lat() if scope.center.coordinates[1] isnt c.lat()
-                                scope.center.coordinates[0] = c.lng() if scope.center.coordinates[0] isnt c.lng()
-                            else
-                                scope.center.latitude = c.lat()  if scope.center.latitude isnt c.lat()
-                                scope.center.longitude = c.lng()  if scope.center.longitude isnt c.lng()
+                            if scope.center && c
+                                if scope.center.type
+                                    scope.center.coordinates[1] = c.lat() if scope.center.coordinates[1] isnt c.lat()
+                                    scope.center.coordinates[0] = c.lng() if scope.center.coordinates[0] isnt c.lng()
+                                else
+                                    scope.center.latitude = c.lat()  if scope.center.latitude isnt c.lat()
+                                    scope.center.longitude = c.lng()  if scope.center.longitude isnt c.lng()
 
                             # update map view zoom
                             scope.zoom = z
@@ -137,6 +138,7 @@ angular.module("google-maps.directives.api")
 
                 # Update map when center coordinates change
                 scope.$watch "center", ((newValue, oldValue) =>
+                    return if not newValue
                     coords = @getCoords newValue
                     return  if coords.lat() is _m.center.lat() and coords.lng() is _m.center.lng()
                     unless dragging
@@ -148,7 +150,7 @@ angular.module("google-maps.directives.api")
                             _m.setCenter coords
                 ), true
                 scope.$watch "zoom", (newValue, oldValue) ->
-                    return  if newValue is _m.zoom
+                    return  if newValue is _m.zoom || typeof newValue == 'undefined' || newValue == null
                     _.defer ->
                         _m.setZoom newValue
 

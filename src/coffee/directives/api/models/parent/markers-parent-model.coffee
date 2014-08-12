@@ -35,7 +35,7 @@ angular.module("google-maps.directives.api.models.parent")
                 #    if _mySelf.dirty(_mySelf)
                 #        _mySelf.updateView _mySelf, scope
                 google.maps.event.addListener @map, "idle", ->
-                    if !_mySelf.initialized || _mySelf.isMapResized()
+                    if _mySelf.isMapResized() || !_mySelf.initialized
                         # during first idle, force redraw map
                         _mySelf.redrawMap _mySelf.map
                         _mySelf.initialized = true
@@ -43,8 +43,9 @@ angular.module("google-maps.directives.api.models.parent")
                         _mySelf.updateView _mySelf, scope
                 $(window).resize ->
                     _mySelf.$timeout ->
-                        _mySelf.initialized = false
-                        google.maps.event.trigger _mySelf.map, "resize"
+                        if _mySelf.initialized
+                            _mySelf.initialized = false
+                            google.maps.event.trigger _mySelf.map, "resize"
 
             isMapResized: () =>
                 $googleMap = @element.parents '.google-map'
@@ -58,6 +59,7 @@ angular.module("google-maps.directives.api.models.parent")
                 if newWidth != @mapWidth || newHeight != @mapHeight
                     @mapWidth = newWidth
                     @mapHeight = newHeight
+                    google.maps.event.trigger this.map, "resize"
                     ret = true
                 ret
 
@@ -130,7 +132,6 @@ angular.module("google-maps.directives.api.models.parent")
                     @gMarkerManager = new MarkerManager(@mapCtrl.getMap(), scope, @DEFAULTS, @doClick, @idKey)
 
                 @gMarkerManager.addMany scope.models
-                @updateView this, scope
                 @gMarkerManager.fit() if scope.fit
                 @redrawMap @mapCtrl.getMap()
 
@@ -232,7 +233,7 @@ angular.module("google-maps.directives.api.models.parent")
                 #slap index to the external model so that when they pass external back
                 #for destroy we have a lookup?
                 #this will require another attribute for destroySingle(marker)
-                @gMarkerManager.clear()
+                @gMarkerManager.clear(true)
                 showMarker = @gMarkerManager.showMarker if @gMarkerManager?
                 _.each @markersInView, (marker) ->
                     data = marker.data

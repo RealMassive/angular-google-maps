@@ -64,9 +64,9 @@ angular.module("google-maps.directives.api.managers")
         @dirty = true
         @draw viewBox, zoom
 
-      clear: ()=>
+      clear: (dontRepaint)=>
         @clusterer.clearMarkers()
-        @clusterer.repaint()
+        @clusterer.repaint() if not dontRepaint
         @gMarkers.forEach (marker) ->
             marker.data.gMarker.setMap null if marker.data.gMarker
         delete @gMarkers
