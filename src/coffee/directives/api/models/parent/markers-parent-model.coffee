@@ -84,8 +84,9 @@ angular.module("google-maps.directives.api.models.parent")
                     return
                 boundary = @mapBoundingBox map
                 zoom = map.zoom
-                @fixBoundaries boundary if boundary
-                @gMarkerManager.redraw boundary, zoom
+                if boundary and zoom
+                    @fixBoundaries boundary
+                    @gMarkerManager.redraw boundary, zoom
                 @inProgress = false
 
             createMarkersFromScratch: (scope) =>

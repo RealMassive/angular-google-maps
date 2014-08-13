@@ -1,4 +1,4 @@
-/*! angular-google-maps 1.1.3 2014-08-12
+/*! angular-google-maps 1.1.3 2014-08-13
  *  AngularJS directives for Google Maps
  *  git: https://github.com/nlaplante/angular-google-maps.git
  */
@@ -1337,6 +1337,7 @@ Nicholas McCready - https://twitter.com/nmccready
           this.show = __bind(this.show, this);
           this.clear = __bind(this.clear, this);
           this.draw = __bind(this.draw, this);
+          this.redraw = __bind(this.redraw, this);
           this.removeMany = __bind(this.removeMany, this);
           this.remove = __bind(this.remove, this);
           this.addMany = __bind(this.addMany, this);
@@ -1382,6 +1383,11 @@ Nicholas McCready - https://twitter.com/nmccready
             _results.push(this.remove(model));
           }
           return _results;
+        };
+
+        MarkerManager.prototype.redraw = function(viewBox, zoom) {
+          this.dirty = true;
+          return this.draw(viewBox, zoom);
         };
 
         MarkerManager.prototype.draw = function(viewBox, zoom) {
@@ -2914,10 +2920,10 @@ Nicholas McCready - https://twitter.com/nmccready
           }
           boundary = this.mapBoundingBox(map);
           zoom = map.zoom;
-          if (boundary) {
+          if (boundary && zoom) {
             this.fixBoundaries(boundary);
+            this.gMarkerManager.redraw(boundary, zoom);
           }
-          this.gMarkerManager.redraw(boundary, zoom);
           return this.inProgress = false;
         };
 

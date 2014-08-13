@@ -26,6 +26,10 @@ angular.module("google-maps.directives.api.managers")
       removeMany: (models)=>
         @remove(model) for model in models
 
+      redraw: (viewBox, zoom)=>
+        @dirty = true
+        @draw viewBox, zoom
+
       draw: (viewBox, zoom)=>
         viewBox = @currentViewBox if not viewBox
         return unless viewBox
