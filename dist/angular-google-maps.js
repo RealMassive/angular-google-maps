@@ -3135,7 +3135,7 @@ Nicholas McCready - https://twitter.com/nmccready
         MarkersParentModel.prototype.fit = function(models) {
           var bounds, everSet,
             _this = this;
-          if (models && models.length > 0) {
+          if (this.map && models && models.length > 0) {
             bounds = new google.maps.LatLngBounds();
             everSet = false;
             return _async.each(models, function(model) {
@@ -4017,6 +4017,12 @@ Nicholas McCready - https://twitter.com/nmccready
             bounds: scope.bounds
           }));
           dragging = false;
+          google.maps.event.addListener(_m, "dragstart", function() {
+            return dragging = true;
+          });
+          google.maps.event.addListener(_m, "dragend", function() {
+            return dragging = false;
+          });
           google.maps.event.addListener(_m, "idle", function() {
             var b, c, ne, sw, z;
             b = _m.getBounds();

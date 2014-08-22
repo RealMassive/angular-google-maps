@@ -260,7 +260,7 @@ angular.module("google-maps.directives.api.models.parent")
                 mapped: mapped
 
             fit: (models) ->
-                if models && models.length > 0
+                if @map && models && models.length > 0
                     bounds = new google.maps.LatLngBounds();
                     everSet = false
                     _async.each models, (model) =>
