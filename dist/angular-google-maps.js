@@ -1,4 +1,4 @@
-/*! angular-google-maps 1.1.3 2014-08-13
+/*! angular-google-maps 1.1.3 2014-08-22
  *  AngularJS directives for Google Maps
  *  git: https://github.com/nlaplante/angular-google-maps.git
  */
@@ -2970,7 +2970,7 @@ Nicholas McCready - https://twitter.com/nmccready
           }
           this.gMarkerManager.addMany(scope.models);
           if (scope.fit) {
-            this.gMarkerManager.fit();
+            this.fit(scope.models);
           }
           return this.redrawMap(this.mapCtrl.getMap());
         };
@@ -3130,6 +3130,25 @@ Nicholas McCready - https://twitter.com/nmccready
             cluster: cluster,
             mapped: mapped
           };
+        };
+
+        MarkersParentModel.prototype.fit = function(models) {
+          var bounds, everSet,
+            _this = this;
+          if (models && models.length > 0) {
+            bounds = new google.maps.LatLngBounds();
+            everSet = false;
+            return _async.each(models, function(model) {
+              if (!everSet) {
+                everSet = true;
+              }
+              return bounds.extend(new google.maps.LatLng(model.geo.latitude, model.geo.longitude));
+            }, function() {
+              if (everSet) {
+                return _this.map.fitBounds(bounds);
+              }
+            });
+          }
         };
 
         return MarkersParentModel;
@@ -3998,12 +4017,6 @@ Nicholas McCready - https://twitter.com/nmccready
             bounds: scope.bounds
           }));
           dragging = false;
-          google.maps.event.addListener(_m, "dragstart", function() {
-            return dragging = true;
-          });
-          google.maps.event.addListener(_m, "dragend", function() {
-            return dragging = false;
-          });
           google.maps.event.addListener(_m, "idle", function() {
             var b, c, ne, sw, z;
             b = _m.getBounds();

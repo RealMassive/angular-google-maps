@@ -133,7 +133,7 @@ angular.module("google-maps.directives.api.models.parent")
                     @gMarkerManager = new MarkerManager(@mapCtrl.getMap(), scope, @DEFAULTS, @doClick, @idKey)
 
                 @gMarkerManager.addMany scope.models
-                @gMarkerManager.fit() if scope.fit
+                @fit(scope.models) if scope.fit
                 @redrawMap @mapCtrl.getMap()
 
             mapBoundingBox: (map) =>
@@ -258,6 +258,16 @@ angular.module("google-maps.directives.api.models.parent")
                     gMarker.data.model
                 cluster: cluster
                 mapped: mapped
+
+            fit: (models) ->
+                if models && models.length > 0
+                    bounds = new google.maps.LatLngBounds();
+                    everSet = false
+                    _async.each models, (model) =>
+                        everSet = true unless everSet
+                        bounds.extend(new google.maps.LatLng(model.geo.latitude, model.geo.longitude))
+                    , () =>
+                        @map.fitBounds(bounds) if everSet
 
         return MarkersParentModel
 ]
