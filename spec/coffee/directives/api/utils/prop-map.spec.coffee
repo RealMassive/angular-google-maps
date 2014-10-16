@@ -1,8 +1,9 @@
 describe "PropMap tests", ->
   beforeEach ->
-    angular.mock.module('google-maps.directives.api.models.parent')
-    inject (PropMap) =>
+    angular.mock.module('google-maps.directives.api.models.parent'.ns())
+    inject [ 'PropMap'.ns(),(PropMap) =>
       @PropMap = PropMap
+    ]
 
   it "should construct", ->
     propMap = new @PropMap()

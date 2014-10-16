@@ -30,25 +30,36 @@ Nicolas Laplante - https://plus.google.com/108189012221374960701
 Nicholas McCready - https://twitter.com/nmccready
 ###
 #define application wide modules
-angular.module("google-maps.directives.api.utils", [])
-angular.module("google-maps.directives.api.managers", [])
-angular.module("google-maps.directives.api.models.child", [
-    "google-maps.directives.api.utils"])
-angular.module("google-maps.directives.api.models.parent", [
-    "google-maps.directives.api.managers",
-    "google-maps.directives.api.models.child"
+angular.module('google-maps.providers'.ns(),[])
+angular.module("google-maps.wrapped".ns(), [])
+angular.module("google-maps.extensions".ns(), ["google-maps.wrapped".ns(),'google-maps.providers'.ns()])
+angular.module("google-maps.directives.api.utils".ns(), ['google-maps.extensions'.ns()])
+angular.module("google-maps.directives.api.managers".ns(), [])
+angular.module("google-maps.directives.api.options".ns(),[
+  "google-maps.directives.api.utils".ns()
 ])
-angular.module("google-maps.directives.api", [ "google-maps.directives.api.models.parent"])
-angular.module("google-maps", [ "google-maps.directives.api"])
-.factory("debounce", ["$timeout", ($timeout) ->
-        (fn) -> # debounce fn
-            nthCall = 0
-            -> # intercepting fn
-                that = this
-                argz = arguments
-                nthCall++
-                later = ((version) ->
-                    ->
-                        fn.apply that, argz  if version is nthCall)(nthCall)
-                $timeout later, 0, true
+angular.module("google-maps.directives.api.options.builders".ns(),[])
+angular.module("google-maps.directives.api.models.child".ns(), [
+  "google-maps.directives.api.utils".ns()
+  "google-maps.directives.api.options".ns()
+  "google-maps.directives.api.options.builders".ns()
+  ])
+angular.module("google-maps.directives.api.models.parent".ns(), [
+  "google-maps.directives.api.managers".ns()
+  "google-maps.directives.api.models.child".ns()
+  'google-maps.providers'.ns()
 ])
+angular.module("google-maps.directives.api".ns(), [ "google-maps.directives.api.models.parent".ns()])
+angular.module("google-maps".ns(), [ "google-maps.directives.api".ns(), 'google-maps.providers'.ns()])
+.factory "debounce".ns(), ["$timeout", ($timeout) ->
+  (fn) -> # debounce fn
+    nthCall = 0
+    -> # intercepting fn
+      that = this
+      argz = arguments
+      nthCall++
+      later = ((version) ->
+        ->
+          fn.apply that, argz  if version is nthCall)(nthCall)
+      $timeout later, 0, true
+]

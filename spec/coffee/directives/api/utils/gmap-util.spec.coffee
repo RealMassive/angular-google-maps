@@ -1,8 +1,8 @@
 describe "utils.gmap-util", ->
   beforeEach ->
-    module "google-maps.directives.api.utils"
+    module "google-maps.directives.api.utils".ns()
     module "google-maps.mocks"
-    inject (GmapUtil, GoogleApiMock) =>
+    inject [ 'GmapUtil'.ns(), 'GoogleApiMock', (GmapUtil, GoogleApiMock) =>
       @subject = GmapUtil
       @gmap = new GoogleApiMock()
       @gmap.mockAPI()
@@ -10,6 +10,7 @@ describe "utils.gmap-util", ->
       @gmap.mockPoint()
       @gmap.mockLatLng()
       @gmap.mockLatLngBounds()
+    ]
 
   describe "should validate the path correctly", ->
     it "latlong", ->
@@ -33,6 +34,7 @@ describe "utils.gmap-util", ->
       expect(@subject.validatePath({type: "LineString", coordinates: [] for [1..2]})).toEqual(false)
     it "foo", ->
       expect(@subject.validatePath({type: "foo", coordinates: []})).toEqual(false)
+
 
   describe "should validate coordinates correctly", ->
     it "basic", ->
@@ -102,3 +104,9 @@ describe "utils.gmap-util", ->
     ]
     testCases.forEach (testCase)=>
       result = @subject.getLabelPositionPoint(testCase.input)
+
+  it "should correctly fetch object values using dot-notation", ->
+    object = { foo: { sea: "hawks" }}
+    expect(@subject.getPath(object, "foo.sea")).toEqual("hawks")
+    expect(@subject.getPath(object, "foo.sea.birds")).toEqual(undefined)
+    expect(@subject.getPath(object, "boo.hoo")).toEqual(undefined)

@@ -1,6 +1,6 @@
-xdescribe "MarkersParentModel", ->
+xdescribe "MarkersParentModel".ns(), ->
   beforeEach ->
-    angular.mock.module "google-maps.directives.api.models.parent", ($provide) =>
+    angular.mock.module "google-maps.directives.api.models.parent".ns(), ($provide) =>
       @provide = $provide
       class MarkerManager
         constructor: (args...) ->
@@ -34,18 +34,20 @@ xdescribe "MarkersParentModel", ->
       @provide.decorator 'MarkerChildModel', () => @markerChildModel
 
     @clickCount = 0
-    inject ($rootScope, $timeout, $compile, $http, $templateCache, $interpolate, MarkersParentModel) =>
+    inject ['$rootScope', '$timeout', '$compile', '$http', '$templateCache', '$interpolate', 'MarkersParentModel'.ns(),
+      ($rootScope, $timeout, $compile, $http, $templateCache, $interpolate, MarkersParentModel) =>
       @rootScope = $rootScope
       @scope = $rootScope.$new()
-      @ele = $compile('<markers models="models"></markers>')(@scope)
+      @ele = $compile('<ui-gmap-markers models="models"></ui-gmap-markers>')(@scope)
       @attrs = {click: @click}
       @MarkersParentModel = MarkersParentModel
       @$timeout = $timeout
       @scope.click = () =>
         @clickCount++
+    ]
 
-    @mapCtrl = jasmine.createSpyObj('mapCtrl', ['getMap'])
-    @subject = new @MarkersParentModel(@scope, @ele, @attrs, @mapCtrl, @$timeout)
+    @map = jasmine.createSpyObj('map')
+    @subject = new @MarkersParentModel(@scope, @ele, @attrs, @map, @$timeout)
 
   it "should instantiate", ->
     expect(@subject?).toEqual(true)

@@ -1,57 +1,87 @@
-angular.module("google-maps.directives.api.managers")
-.factory "ClustererMarkerManager", ["Logger", "FitHelper", ($log, FitHelper) ->
-    class ClustererMarkerManager extends FitHelper
-      constructor: (gMap, opt_markers, opt_options, @opt_events) ->
-        super()
-        self = @
-        @opt_options = opt_options
-        if opt_options? and opt_markers == undefined
-          @clusterer = new MarkerClusterer(gMap, undefined, opt_options)
-        else if opt_options? and opt_markers?
-          @clusterer = new MarkerClusterer(gMap, opt_markers, opt_options)
-        else
-          @clusterer = new MarkerClusterer(gMap)
+angular.module("google-maps.directives.api.managers".ns())
+.factory "ClustererMarkerManager".ns(), ["Logger".ns(), "FitHelper".ns(), "PropMap".ns(), ($log, FitHelper, PropMap) ->
+  class ClustererMarkerManager extends FitHelper
+    constructor: (gMap, opt_markers, opt_options, @opt_events) ->
+      super()
+      self = @
+      @opt_options = opt_options
+      if opt_options? and opt_markers == undefined
+        @clusterer = new NgMapMarkerClusterer(gMap, undefined, opt_options)
+      else if opt_options? and opt_markers?
+        @clusterer = new NgMapMarkerClusterer(gMap, opt_markers, opt_options)
+      else
+        @clusterer = new NgMapMarkerClusterer(gMap)
+      @propMapGMarkers = new PropMap() #keep in sync with cluster.markers_
 
-        @attachEvents @opt_events, "opt_events"
+      @attachEvents @opt_events, "opt_events"
 
-        @clusterer.setIgnoreHidden(true)
-        @noDrawOnSingleAddRemoves = true
-        $log.info(@)
-      add: (gMarker)=>
-        @clusterer.addMarker(gMarker, @noDrawOnSingleAddRemoves)
-      addMany: (gMarkers)=>
-        @clusterer.addMarkers(gMarkers)
-      remove: (gMarker)=>
+      @clusterer.setIgnoreHidden(true)
+      @noDrawOnSingleAddRemoves = true
+      $log.info(@)
+
+    checkKey: (gMarker) ->
+      unless gMarker.key?
+        msg = "gMarker.key undefined and it is REQUIRED!!"
+        Logger.error msg
+
+    add: (gMarker)=>
+      @checkKey gMarker
+      exists = @propMapGMarkers.get(gMarker.key)?
+
+      @clusterer.addMarker(gMarker, @noDrawOnSingleAddRemoves)
+      @propMapGMarkers.put gMarker.key, gMarker
+      @checkSync()
+
+    addMany: (gMarkers)=>
+      gMarkers.forEach (gMarker) =>
+        @add gMarker
+
+    remove: (gMarker)=>
+      @checkKey gMarker
+      exists = @propMapGMarkers.get gMarker.key
+      if exists
         @clusterer.removeMarker(gMarker, @noDrawOnSingleAddRemoves)
-      removeMany: (gMarkers)=>
-        @clusterer.addMarkers(gMarkers)
-      draw: ()=>
-        @clusterer.repaint()
-      clear: ()=>
-        @clusterer.clearMarkers()
-        @clusterer.repaint()
+        @propMapGMarkers.remove gMarker.key
+      @checkSync()
 
-      attachEvents:(options, optionsName) ->
-        if angular.isDefined(options) and options? and angular.isObject(options)
-          for eventName, eventHandler of options
-            if options.hasOwnProperty(eventName) and angular.isFunction(options[eventName])
-              $log.info "#{optionsName}: Attaching event: #{eventName} to clusterer"
-              google.maps.event.addListener @clusterer, eventName, options[eventName]
+    removeMany: (gMarkers)=>
+      gMarkers.forEach (gMarker) =>
+        @remove gMarker
 
-      clearEvents:(options) ->
-        if angular.isDefined(options) and options? and angular.isObject(options)
-          for eventName, eventHandler of options
-            if options.hasOwnProperty(eventName) and angular.isFunction(options[eventName])
-              $log.info "#{optionsName}: Clearing event: #{eventName} to clusterer"
-              google.maps.event.clearListeners @clusterer, eventName
+    draw: ()=>
+      @clusterer.repaint()
 
-      destroy: =>
-        @clearEvents @opt_events
-        @clearEvents @opt_internal_events
-        @clear()
+    clear: ()=>
+      @removeMany @getGMarkers()
+      @clusterer.repaint()
 
-      fit: ()=>
-        super @clusterer.getMarkers() , @clusterer.getMap()
+    attachEvents: (options, optionsName) ->
+      if angular.isDefined(options) and options? and angular.isObject(options)
+        for eventName, eventHandler of options
+          if options.hasOwnProperty(eventName) and angular.isFunction(options[eventName])
+            $log.info "#{optionsName}: Attaching event: #{eventName} to clusterer"
+            google.maps.event.addListener @clusterer, eventName, options[eventName]
 
-    ClustererMarkerManager
-  ]
+    clearEvents: (options) ->
+      if angular.isDefined(options) and options? and angular.isObject(options)
+        for eventName, eventHandler of options
+          if options.hasOwnProperty(eventName) and angular.isFunction(options[eventName])
+            $log.info "#{optionsName}: Clearing event: #{eventName} to clusterer"
+            google.maps.event.clearListeners @clusterer, eventName
+
+    destroy: =>
+      @clearEvents @opt_events
+      @clearEvents @opt_internal_events
+      @clear()
+
+    fit: ()=>
+      super @getGMarkers(), @clusterer.getMap()
+
+    getGMarkers: =>
+      @clusterer.getMarkers().values()
+
+    checkSync: =>
+      throw "GMarkers out of Sync in MarkerClusterer" if @getGMarkers().length != @propMapGMarkers.length
+
+  ClustererMarkerManager
+]

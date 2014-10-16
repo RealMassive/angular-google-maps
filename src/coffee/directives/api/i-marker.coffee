@@ -6,29 +6,32 @@
  			- icon
 		- implementation needed on watches
 ###
-angular.module("google-maps.directives.api")
-.factory "IMarker", [ "Logger", "BaseObject", (Logger, BaseObject)->
-    class IMarker extends BaseObject
-      constructor: ($timeout) ->
-        self = @
-        @$log = Logger
-        @$timeout = $timeout
-        @restrict = 'ECMA'
-        @require = '^googleMap'
-        @priority = -1
-        @transclude = true
-        @replace = true
-        @scope =
-          coords: '=coords',
-          icon: '=icon',
-          click: '&click',
-          options: '=options',
-          events: '=events',
-          fit: '=fit'
+angular.module("google-maps.directives.api".ns())
+.factory "IMarker".ns(), [ "Logger".ns(), "BaseObject".ns(), "CtrlHandle".ns(), (Logger, BaseObject, CtrlHandle)->
+  class IMarker extends BaseObject
 
-      controller: ['$scope', '$element', ($scope, $element) ->
-        throw new Exception("Not Implemented!!")
-      ]
-      link: (scope, element, attrs, ctrl) =>
-        throw new Exception("Not implemented!!")
-  ]
+    IMarker.keys =
+      coords: '=coords'
+      icon: '=icon'
+      click: '&click'
+      options: '=options'
+      events: '=events'
+      fit: '=fit'
+      idKey: '=idkey' #id key to bind to that makes a model unique, if it does not exist default to rebuilding all markers
+      control: '=control'
+
+    @extend CtrlHandle
+    constructor: ->
+      @$log = Logger
+      @restrict = 'EMA'
+      @require = '^' + 'GoogleMap'.ns()
+      @priority = -1
+      @transclude = true
+      @replace = true
+      @scope = IMarker.keys
+
+
+    link: (scope, element, attrs, ctrl) =>
+      throw new Error "No Map Control! Marker Directive Must be inside the map!" unless ctrl
+]
+
