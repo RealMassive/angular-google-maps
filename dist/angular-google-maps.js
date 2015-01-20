@@ -1,4 +1,4 @@
-/*! angular-google-maps 2.0.1 2014-10-22
+/*! angular-google-maps 2.0.1 2015-01-20
  *  AngularJS directives for Google Maps
  *  git: https://github.com/angular-ui/angular-google-maps.git
  */
@@ -6814,7 +6814,7 @@ angular.module('google-maps.wrapped'.ns()).service('GoogleMapsUtilV3'.ns(), func
   return {
     init: _.once(function () {
       //BEGIN REPLACE
-      /*! angular-google-maps 2.0.1 2014-10-22
+      /*! angular-google-maps 2.0.1 2015-01-20
  *  AngularJS directives for Google Maps
  *  git: https://github.com/angular-ui/angular-google-maps.git
  */
@@ -8071,12 +8071,14 @@ ClusterIcon.prototype.draw = function () {
  */
 ClusterIcon.prototype.hide = function (animation) {
     var _self = this;
-    if(this.animationSpeed && animation && this.div_) {
+    if(animation && animation.position && this.div_ && this.animationSpeed) {
+        _self.animation = animation;
         setTimeout(function() {
-            _self.animation = animation;
-            var clusterCenter = animation.position;
-            var pos = _self.getPosFromLatLng_(clusterCenter);
-            _self.div_.style.cssText = _self.createCss(pos);
+            if(_self.div_) {
+                var clusterCenter = animation.position;
+                var pos = _self.getPosFromLatLng_(clusterCenter);
+                _self.div_.style.cssText = _self.createCss(pos);
+            }
         }, 0);
     }
     setTimeout(function() {
