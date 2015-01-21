@@ -1,4 +1,4 @@
-/*! angular-google-maps 2.0.1 2015-01-20
+/*! angular-google-maps 2.0.1 2015-01-21
  *  AngularJS directives for Google Maps
  *  git: https://github.com/angular-ui/angular-google-maps.git
  */
@@ -2850,6 +2850,8 @@ Original idea from: http://stackoverflow.com/questions/22758950/google-map-drawi
         WindowChildModel.prototype.doShow = function() {
           if (this.scope.show) {
             return this.showWindow();
+          } else {
+            return this.hideWindow();
           }
         };
 
@@ -6814,7 +6816,7 @@ angular.module('google-maps.wrapped'.ns()).service('GoogleMapsUtilV3'.ns(), func
   return {
     init: _.once(function () {
       //BEGIN REPLACE
-      /*! angular-google-maps 2.0.1 2015-01-20
+      /*! angular-google-maps 2.0.1 2015-01-21
  *  AngularJS directives for Google Maps
  *  git: https://github.com/angular-ui/angular-google-maps.git
  */
