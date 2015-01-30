@@ -112,7 +112,6 @@ angular.module("google-maps.directives.api.models.parent".ns())
 
             redrawMap: (map) =>
               return if not map
-              return if @updateInProgress()
 
               boundary = @mapBoundingBox map
               zoom = map.zoom

@@ -1,4 +1,4 @@
-/*! angular-google-maps 2.0.1 2015-01-21
+/*! angular-google-maps 2.0.1 2015-01-30
  *  AngularJS directives for Google Maps
  *  git: https://github.com/angular-ui/angular-google-maps.git
  */
@@ -3683,9 +3683,6 @@ Original idea from: http://stackoverflow.com/questions/22758950/google-map-drawi
           if (!map) {
             return;
           }
-          if (this.updateInProgress()) {
-            return;
-          }
           boundary = this.mapBoundingBox(map);
           zoom = map.zoom;
           if (boundary && zoom) {
@@ -6816,7 +6813,7 @@ angular.module('google-maps.wrapped'.ns()).service('GoogleMapsUtilV3'.ns(), func
   return {
     init: _.once(function () {
       //BEGIN REPLACE
-      /*! angular-google-maps 2.0.1 2015-01-21
+      /*! angular-google-maps 2.0.1 2015-01-30
  *  AngularJS directives for Google Maps
  *  git: https://github.com/angular-ui/angular-google-maps.git
  */
@@ -8618,6 +8615,7 @@ function MarkerClusterer(map, opt_markers, opt_options, MarkerChildModel, parent
     this.batchSize_ = opt_options.batchSize || MarkerClusterer.BATCH_SIZE;
     this.batchSizeIE_ = opt_options.batchSizeIE || MarkerClusterer.BATCH_SIZE_IE;
     this.clusterClass_ = opt_options.clusterClass || "cluster";
+    this.redraw_ = _.debounce(this.debouncedRedraw_, 100);
 
     if (navigator.userAgent.toLowerCase().indexOf("msie") !== -1) {
         // Try to avoid IE timeout when processing a huge number of markers:
@@ -9261,7 +9259,7 @@ MarkerClusterer.prototype.getExtendedBounds = function (bounds) {
 /**
  * Redraws all the clusters.
  */
-MarkerClusterer.prototype.redraw_ = function () {
+MarkerClusterer.prototype.debouncedRedraw_ = function () {
     this.createClusters_(0);
 };
 
