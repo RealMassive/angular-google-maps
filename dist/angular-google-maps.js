@@ -1,4 +1,4 @@
-/*! angular-google-maps 2.0.1 2015-01-30
+/*! angular-google-maps 2.0.1 2015-02-06
  *  AngularJS directives for Google Maps
  *  git: https://github.com/angular-ui/angular-google-maps.git
  */
@@ -6813,7 +6813,7 @@ angular.module('google-maps.wrapped'.ns()).service('GoogleMapsUtilV3'.ns(), func
   return {
     init: _.once(function () {
       //BEGIN REPLACE
-      /*! angular-google-maps 2.0.1 2015-01-30
+      /*! angular-google-maps 2.0.1 2015-02-06
  *  AngularJS directives for Google Maps
  *  git: https://github.com/angular-ui/angular-google-maps.git
  */
@@ -7230,7 +7230,7 @@ InfoBox.prototype.createInfoBoxDiv_ = function () {
             //
             // Note: mousemove not included (to resolve Issue 152)
             events = ["mousedown", "mouseover", "mouseout", "mouseup",
-                "click", "dblclick", "touchstart", "touchend", "touchmove"];
+                "click", "dblclick", "touchstart", "touchend", "touchmove", "mousewheel", "DOMMouseScroll"];
 
             for (i = 0; i < events.length; i++) {
 
