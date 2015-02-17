@@ -1,4 +1,4 @@
-/*! angular-google-maps 2.0.1 2015-02-06
+/*! angular-google-maps 2.0.1 2015-02-17
  *  AngularJS directives for Google Maps
  *  git: https://github.com/angular-ui/angular-google-maps.git
  */
@@ -312,8 +312,9 @@ Nicholas McCready - https://twitter.com/nmccready
         }
         if (window.MarkerLabel_) {
           window.MarkerLabel_.prototype.setContent = function() {
-            var content;
-            content = this.marker_.get("labelContent");
+            var cont, content;
+            cont = this.marker_.get("labelContent");
+            content = typeof cont === 'function' ? cont() : cont;
             if (!content || _.isEqual(this.oldContent, content)) {
               return;
             }
@@ -2248,12 +2249,13 @@ Original idea from: http://stackoverflow.com/questions/22758950/google-map-drawi
         MarkerChildModel.include(MarkerOptions);
 
         destroy = function(child) {
+          var _ref;
           if ((child != null ? child.gMarker : void 0) != null) {
             child.removeEvents(child.externalListeners);
             child.removeEvents(child.internalListeners);
             if (child != null ? child.gMarker : void 0) {
-              if (child != null) {
-                child.gMarkerManager.remove(child != null ? child.gMarker : void 0, true);
+              if ((_ref = child.gMarkerManager) != null) {
+                _ref.remove(child != null ? child.gMarker : void 0, true);
               }
               return delete child.gMarker;
             }
@@ -6813,7 +6815,7 @@ angular.module('google-maps.wrapped'.ns()).service('GoogleMapsUtilV3'.ns(), func
   return {
     init: _.once(function () {
       //BEGIN REPLACE
-      /*! angular-google-maps 2.0.1 2015-02-06
+      /*! angular-google-maps 2.0.1 2015-02-17
  *  AngularJS directives for Google Maps
  *  git: https://github.com/angular-ui/angular-google-maps.git
  */

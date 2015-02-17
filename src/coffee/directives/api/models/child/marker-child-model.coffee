@@ -14,7 +14,7 @@ angular.module("google-maps.directives.api.models.child".ns())
           child.removeEvents child.externalListeners
           child.removeEvents child.internalListeners
           if child?.gMarker
-            child?.gMarkerManager.remove child?.gMarker, true
+            child.gMarkerManager?.remove child?.gMarker, true
             delete child.gMarker
 
       constructor: (scope, @model, @keys, @gMap, @defaults, @gMarkerManager, @doDrawSelf = true,

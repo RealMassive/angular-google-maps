@@ -62,7 +62,8 @@ angular.module("google-maps.extensions".ns())
     if window.MarkerLabel_
 
       window.MarkerLabel_::setContent = ->
-        content = @marker_.get("labelContent")
+        cont = @marker_.get("labelContent")
+        content = if(typeof cont == 'function') then cont() else cont
         return if !content or _.isEqual @oldContent, content
         if typeof content?.nodeType is "undefined"
           @labelDiv_.innerHTML = content
