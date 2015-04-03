@@ -1,4 +1,4 @@
-/*! angular-google-maps 2.0.1 2015-02-17
+/*! angular-google-maps 2.0.1 2015-04-03
  *  AngularJS directives for Google Maps
  *  git: https://github.com/angular-ui/angular-google-maps.git
  */
@@ -1370,7 +1370,7 @@ Nicholas McCready - https://twitter.com/nmccready
         };
 
         ClustererMarkerManager.prototype.draw = function(viewBox, zoom) {
-          var _self;
+          this.dirty = this.zoom === zoom;
           if (!viewBox) {
             viewBox = this.currentViewBox;
           }
@@ -1384,17 +1384,17 @@ Nicholas McCready - https://twitter.com/nmccready
           if (!this.zoom) {
             this.zoom = zoom;
           }
-          _self = this;
-          this.gMarkers.find(viewBox.ne, viewBox.sw, function(marker) {
-            if (!marker.visible) {
-              marker.visible = {};
-            }
-            if (!(marker.visible && marker.visible[zoom])) {
-              _self.clusterer.addMarker(marker, true);
-              marker.visible[zoom] = true;
-            }
-            return false;
-          });
+          this.gMarkers.find(viewBox.ne, viewBox.sw, (function(_this) {
+            return function(marker) {
+              if (!marker.visible) {
+                marker.visible = {};
+              }
+              if (!(marker.visible && marker.visible[zoom])) {
+                _this.clusterer.addMarker(marker, true);
+              }
+              return false;
+            };
+          })(this));
           this.currentViewBox = viewBox;
           this.zoom = zoom;
           this.clusterer.repaint(this.dirty);
@@ -1411,11 +1411,13 @@ Nicholas McCready - https://twitter.com/nmccready
           if (!dontRepaint) {
             this.clusterer.repaint();
           }
-          this.gMarkers.forEach(function(marker) {
-            if (marker.data.gMarker) {
-              return marker.data.gMarker.setMap(null);
-            }
-          });
+          this.gMarkers.forEach((function(_this) {
+            return function(marker) {
+              if (marker.data.gMarker) {
+                return marker.data.gMarker.setMap(null);
+              }
+            };
+          })(this));
           delete this.gMarkers;
           return this.gMarkers = new GeoTree();
         };
@@ -3561,6 +3563,7 @@ Original idea from: http://stackoverflow.com/questions/22758950/google-map-drawi
         MarkersParentModel.include(ModelsWatcher);
 
         function MarkersParentModel(scope, element, attrs, map) {
+          this.fit = __bind(this.fit, this);
           this.onDestroy = __bind(this.onDestroy, this);
           this.reBuildMarkers = __bind(this.reBuildMarkers, this);
           this.updateView = __bind(this.updateView, this);
@@ -3585,14 +3588,19 @@ Original idea from: http://stackoverflow.com/questions/22758950/google-map-drawi
           this.watch('idKey', scope);
           this.gMarkerManager = void 0;
           this.createMarkersFromScratch(scope);
-          google.maps.event.addListener(this.map, "idle", function() {
-            if (self.isMapResized() || !self.initialized) {
-              self.redrawMap(self.map);
-              return self.initialized = true;
-            } else {
-              return self.updateView.bind(self)(scope);
-            }
-          });
+          this.initialized = false;
+          this.updateViewDebounced = _.debounce(this.updateView.bind(this), 100);
+          this.redrawMapDebounced = _.debounce(this.redrawMap.bind(this), 100);
+          google.maps.event.addListener(this.map, "idle", (function(_this) {
+            return function() {
+              if (_this.isMapResized() || !_this.initialized) {
+                _this.redrawMapDebounced(_this.map);
+                return _this.initialized = true;
+              } else {
+                return _this.updateViewDebounced();
+              }
+            };
+          })(this));
         }
 
         MarkersParentModel.prototype.onWatch = function(propNameToWatch, scope, newValue, oldValue) {
@@ -3626,13 +3634,13 @@ Original idea from: http://stackoverflow.com/questions/22758950/google-map-drawi
                     };
                     return _.extend(scope.clusterEvents, {
                       click: function(cluster) {
-                        return self.maybeExecMappedEvent(cluster, 'click');
+                        return _this.maybeExecMappedEvent(cluster, 'click');
                       },
                       mouseout: function(cluster) {
-                        return self.maybeExecMappedEvent(cluster, 'mouseout');
+                        return _this.maybeExecMappedEvent(cluster, 'mouseout');
                       },
                       mouseover: function(cluster) {
-                        return self.maybeExecMappedEvent(cluster, 'mouseover');
+                        return _this.maybeExecMappedEvent(cluster, 'mouseover');
                       }
                     });
                   }
@@ -3658,7 +3666,9 @@ Original idea from: http://stackoverflow.com/questions/22758950/google-map-drawi
             if (scope.fit) {
               this.fit(scope.models);
             }
-            return this.redrawMap(this.map);
+            if (this.initialized) {
+              return this.redrawMapDebounced(this.map);
+            }
           }
         };
 
@@ -3736,11 +3746,8 @@ Original idea from: http://stackoverflow.com/questions/22758950/google-map-drawi
           }
         };
 
-        MarkersParentModel.prototype.updateView = function(scope) {
+        MarkersParentModel.prototype.updateView = function() {
           var boundary;
-          if (this.updateInProgress()) {
-            return;
-          }
           boundary = this.mapBoundingBox(this.map);
           if (!boundary) {
             this.inProgress = false;
@@ -6815,7 +6822,7 @@ angular.module('google-maps.wrapped'.ns()).service('GoogleMapsUtilV3'.ns(), func
   return {
     init: _.once(function () {
       //BEGIN REPLACE
-      /*! angular-google-maps 2.0.1 2015-02-17
+      /*! angular-google-maps 2.0.1 2015-04-03
  *  AngularJS directives for Google Maps
  *  git: https://github.com/angular-ui/angular-google-maps.git
  */
@@ -9111,8 +9118,14 @@ MarkerClusterer.prototype.addMarkers = function (markers, opt_nodraw) {
  */
 MarkerClusterer.prototype.pushMarkerTo_ = function (marker) {
     marker.isAdded = false;
-    this.markers_.push(marker);
-    this.dirty = true;
+    var id = marker.data.model.id;
+    var existingMarker = _.find(this.markers_, function(m) {
+        return m.data.model.id === id;
+    });
+    if(!existingMarker) {
+        this.markers_.push(marker);
+        this.dirty = true;
+    }
 };
 
 
@@ -9361,6 +9374,7 @@ MarkerClusterer.prototype.addToClosestCluster_ = function (markers, clustersTree
             newCluster.updated = true;
             clustersTree.insert(newMarkerPosition.lat(), newMarkerPosition.lng(), newCluster);
         }
+        marker.visible[zoom] = true;
     }
 
     return diff;

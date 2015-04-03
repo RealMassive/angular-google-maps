@@ -24,16 +24,20 @@ angular.module("google-maps.directives.api.models.parent".ns())
                 @watch('idKey', scope)
                 @gMarkerManager = undefined
                 @createMarkersFromScratch(scope)
+                @initialized = false
+
+                @updateViewDebounced = _.debounce this.updateView.bind(this), 100
+                @redrawMapDebounced = _.debounce this.redrawMap.bind(this), 100
 
                 # listen for map "idle" event. If map was resized, redraw whole
                 # mapview or update only portion of view which is needed
-                google.maps.event.addListener @map, "idle", ->
-                  if self.isMapResized() || !self.initialized
+                google.maps.event.addListener @map, "idle", =>
+                  if @isMapResized() || !@initialized
                     # during first idle, force redraw map
-                    self.redrawMap self.map
-                    self.initialized = true
+                    @redrawMapDebounced @map
+                    @initialized = true
                   else
-                    self.updateView.bind(self)(scope)
+                    @updateViewDebounced()
 
 
             onWatch: (propNameToWatch, scope, newValue, oldValue) =>
@@ -59,12 +63,12 @@ angular.module("google-maps.directives.api.models.parent".ns())
                                   mouseout: scope.clusterEvents?.mouseout
                                   mouseover: scope.clusterEvents?.mouseover
                               _.extend scope.clusterEvents,
-                                  click:(cluster) ->
-                                      self.maybeExecMappedEvent cluster, 'click'
-                                  mouseout:(cluster) ->
-                                      self.maybeExecMappedEvent cluster, 'mouseout'
-                                  mouseover:(cluster) ->
-                                    self.maybeExecMappedEvent cluster, 'mouseover'
+                                  click:(cluster) =>
+                                      @maybeExecMappedEvent cluster, 'click'
+                                  mouseout:(cluster) =>
+                                      @maybeExecMappedEvent cluster, 'mouseout'
+                                  mouseover:(cluster) =>
+                                      @maybeExecMappedEvent cluster, 'mouseover'
 
                     if scope.clusterOptions or scope.clusterEvents
                         if @gMarkerManager == undefined
@@ -91,7 +95,7 @@ angular.module("google-maps.directives.api.models.parent".ns())
                 if scope.models
                     @gMarkerManager.addMany scope.models
                     @fit(scope.models) if scope.fit
-                    @redrawMap @map
+                    @redrawMapDebounced @map if @initialized
 
             # checks if google map view was resized
             isMapResized: () =>
@@ -154,10 +158,7 @@ angular.module("google-maps.directives.api.models.parent".ns())
               if boundary.ne.lng < boundary.sw.lng
                 boundary.sw.lng = if boundary.ne.lng > 0 then -180 else 180
 
-            updateView: (scope) =>
-              if @updateInProgress()
-                return
-
+            updateView: =>
               boundary = @mapBoundingBox @map
               if not boundary
                 @inProgress = false
@@ -191,7 +192,7 @@ angular.module("google-maps.directives.api.models.parent".ns())
                 cluster: cluster
                 mapped: mapped
 
-            fit: (models) ->
+            fit: (models) =>
               if models && models.length > 0
                 bounds = new google.maps.LatLngBounds();
                 everSet = false

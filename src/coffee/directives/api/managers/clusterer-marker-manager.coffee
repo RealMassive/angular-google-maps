@@ -37,6 +37,8 @@ angular.module("google-maps.directives.api.managers".ns())
       #@clusterer.removeModels(gMarkers)
 
     draw: (viewBox, zoom) =>
+      @dirty = @zoom == zoom
+
       viewBox = @currentViewBox if not viewBox
       return unless viewBox
 
@@ -47,13 +49,12 @@ angular.module("google-maps.directives.api.managers".ns())
       if not @zoom
         @zoom = zoom
 
-      _self = @
       # show markers which are new in view
-      @gMarkers.find viewBox.ne, viewBox.sw, (marker) ->
+      @gMarkers.find viewBox.ne, viewBox.sw, (marker) =>
         marker.visible = {} if not marker.visible
         if not (marker.visible && marker.visible[zoom])
-          _self.clusterer.addMarker marker, true
-          marker.visible[zoom] = true
+          @clusterer.addMarker marker, true
+          # marker.visible[zoom] = true
         false
 
       @currentViewBox = viewBox
@@ -69,7 +70,7 @@ angular.module("google-maps.directives.api.managers".ns())
     clear: (dontRepaint)=>
       @clusterer.clearMarkers()
       @clusterer.repaint() if not dontRepaint
-      @gMarkers.forEach (marker) ->
+      @gMarkers.forEach (marker) =>
         marker.data.gMarker.setMap null if marker.data.gMarker
       delete @gMarkers
       @gMarkers = new GeoTree()
